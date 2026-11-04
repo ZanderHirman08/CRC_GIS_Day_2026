@@ -49,18 +49,18 @@ body.v-stats .canvas-only { display: none; }
 #stats { display: none; padding: 20px; overflow: auto; height: 100%; }
 body.v-stats #stats { display: block; }
 body.v-stats #cv, body.v-stats #scale, body.v-stats .sel-panel { display: none !important; }
-#tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--sub); display: none; white-space: nowrap; line-height: 1.5; }
-#tip strong { color: var(--text); }
-.sel-panel { position: absolute; top: 10px; right: 10px; width: 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--sub); line-height: 1.5; }
+.sel-panel { position: absolute; top: 10px; right: 10px; width: 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.45; }
 .sel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.sel-head strong { color: var(--text); font-size: 14px; }
-.sel-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+.sel-head strong { color: var(--text); font-size: 15px; }
+.sel-close { background: none; border: none; color: var(--muted); font-size: 20px; line-height: 1; padding: 0 2px; }
 .sel-close:hover { color: var(--text); }
-.sel-class { display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; }
+.sel-class { display: inline-flex; align-items: center; gap: 5px; color: var(--sub); font-size: 13px; margin-left: 4px; white-space: nowrap; }
 .sel-class i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.sel-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-top: 1px solid var(--line); }
-.sel-row b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sel-crc { color: var(--muted); padding: 3px 0; border-top: 1px solid var(--line); }
+.sel-size { margin: 2px 0 10px; color: var(--text); font-size: 20px; font-weight: 700; }
+.sel-sub { margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.sel-line { margin: 2px 0; }
+.sel-line b { color: var(--text); font-variant-numeric: tabular-nums; }
+.sel-crc { color: var(--muted); }
 @media (max-width: 720px) { .sel-panel { left: 10px; right: 10px; width: auto; top: auto; bottom: 34px; } }
 #scale { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
 #scale i { display: block; height: 2px; background: var(--muted); margin-bottom: 4px; }

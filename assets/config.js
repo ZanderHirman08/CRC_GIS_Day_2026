@@ -55,14 +55,12 @@ window.CONFIG = {
     },
 
     // Panel shown when you click a building on the map.
-    // {class} = its OCC_CLS class; {rank} and {total} in rankFormat.
+    // Fill-ins: {rank} (e.g. 1,235th), {total}, {class} (its OCC_CLS), {county}
     selection: {
-      size: "Size",
-      countyRank: "Size rank in county",
-      classCountyRank: "{class} rank in county",
-      crcRank: "Size rank in CRC",
-      classCrcRank: "{class} rank in CRC",
-      rankFormat: "#{rank} of {total}",
+      countyHeading: "In {county} County",
+      crcHeading: "Across all 10 CRC counties",
+      rankAll: "{rank} largest of {total} buildings",
+      rankClass: "{rank} largest of {total} {class} buildings",
       close: "Close"
     },
 

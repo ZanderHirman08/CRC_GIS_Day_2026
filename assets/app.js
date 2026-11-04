@@ -657,9 +657,21 @@ function countLarger(arr, v) {
   return lo;
 }
 
-function rankText(rank, total) {
-  const tpl = (T.selection || {}).rankFormat || "#{rank} of {total}";
-  return esc(tpl.replace("{rank}", fmt(rank)).replace("{total}", fmt(total)));
+// 1 -> "1st", 22 -> "22nd", 113 -> "113th"
+function ordinal(n) {
+  const v = n % 100, suf = v >= 11 && v <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" })[n % 10] || "th";
+  return fmt(n) + suf;
+}
+
+// One sentence from a config template; {rank}, {total} (bold), {class} and {county}.
+function sentence(tpl, name, vars) {
+  if (!tpl) return `<p class="sel-line ph">[${name}]</p>`;
+  const html = esc(tpl)
+    .replace("{rank}", `<b>${ordinal(vars.rank)}</b>`)
+    .replace("{total}", `<b>${fmt(vars.total)}</b>`)
+    .replace("{class}", esc(vars.cls || ""))
+    .replace("{county}", esc(vars.county || ""));
+  return `<p class="sel-line">${html}</p>`;
 }
 
 async function selectBuilding(i) {
@@ -667,6 +679,7 @@ async function selectBuilding(i) {
   draw();
   const b = cur.B[i], S = T.selection || {};
   const a10 = Math.round(b.area * 10);
+  const cls = className(b.t);
   // County ranks: 1 + number of buildings with a bigger footprint (equal sizes share a rank)
   let cAll = 0, cCls = 0, nCls = 0;
   for (const x of cur.B) {
@@ -674,18 +687,21 @@ async function selectBuilding(i) {
     if (bigger) cAll++;
     if (x.t === b.t) { nCls++; if (bigger) cCls++; }
   }
-  // Labels may name the building's class: {class}
-  const fill = (label) => label && label.replace("{class}", className(b.t));
-  const row = (label, name, value) =>
-    `<div class="sel-row"><span class="${label ? "" : "ph"}">${esc(fill(label) || `[${name}]`)}</span><b>${value}</b></div>`;
-  const head = `<div class="sel-head"><strong>${esc(IDX.prims[b.prim])}</strong>
-      <button type="button" class="sel-close" aria-label="${esc(S.close || "Close")}">&times;</button></div>
-    <div class="sel-class"><i style="background:${esc(classColor(b.t))}"></i>${esc(className(b.t))}</div>`;
-  const rowsCounty = row(S.size, "selection.size", `${fmt(b.area * SQFT)} ft²`) +
-    row(S.countyRank, "selection.countyRank", rankText(cAll + 1, cur.B.length)) +
-    row(S.classCountyRank, "selection.classCountyRank", rankText(cCls + 1, nCls));
+  const heading = (tpl, name) => tpl
+    ? `<h4 class="sel-sub">${esc(tpl.replace("{county}", cur.name))}</h4>`
+    : `<h4 class="sel-sub ph">[${name}]</h4>`;
   const panel = $("sel");
-  panel.innerHTML = head + rowsCounty + `<div class="sel-crc">…</div>`;
+  panel.innerHTML = `
+    <div class="sel-head">
+      <div><strong>${esc(IDX.prims[b.prim])}</strong> <span class="sel-class"><i style="background:${esc(classColor(b.t))}"></i>${esc(cls)}</span></div>
+      <button type="button" class="sel-close" aria-label="${esc(S.close || "Close")}">&times;</button>
+    </div>
+    <p class="sel-size">${fmt(b.area * SQFT)} ft²</p>
+    ${heading(S.countyHeading, "selection.countyHeading")}
+    ${sentence(S.rankAll, "selection.rankAll", { rank: cAll + 1, total: cur.B.length, cls, county: cur.name })}
+    ${sentence(S.rankClass, "selection.rankClass", { rank: cCls + 1, total: nCls, cls, county: cur.name })}
+    ${heading(S.crcHeading, "selection.crcHeading")}
+    <div class="sel-crc">…</div>`;
   panel.hidden = false;
   panel.querySelector(".sel-close").onclick = closeSelection;
   try {
@@ -695,8 +711,8 @@ async function selectBuilding(i) {
     for (const arr of R) { all += countLarger(arr, a10); total += arr.length; }
     const clsArr = R[b.t] || new Int32Array(0);
     panel.querySelector(".sel-crc").outerHTML =
-      row(S.crcRank, "selection.crcRank", rankText(all + 1, total)) +
-      row(S.classCrcRank, "selection.classCrcRank", rankText(countLarger(clsArr, a10) + 1, clsArr.length));
+      sentence(S.rankAll, "selection.rankAll", { rank: all + 1, total, cls, county: cur.name }) +
+      sentence(S.rankClass, "selection.rankClass", { rank: countLarger(clsArr, a10) + 1, total: clsArr.length, cls, county: cur.name });
   } catch (err) {
     const el = panel.querySelector(".sel-crc");
     if (el) el.textContent = "data/ranks.json could not be loaded.";
