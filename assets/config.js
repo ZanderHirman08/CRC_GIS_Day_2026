@@ -160,7 +160,7 @@ window.CONFIG = {
 
 
   // Logo left of the title (hidden until the file exists)
-  logo: { src: "assets/crc-logo.png", alt: "Coastal Regional Commission of Georgia" },
+  logo: { src: "assets/crc-logo.png?v=2", alt: "Coastal Regional Commission of Georgia" },
 
   // ── Behavior ───────────────────────────────────────────────
   defaultCounty: "chatham",     // slug from data/index.json
