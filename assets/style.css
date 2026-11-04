@@ -17,6 +17,8 @@ body { max-width: 1200px; margin: 0 auto; padding: 20px 16px 32px; }
 .page-head h1 { font-size: 28px; margin: 0 0 6px; }
 .subtitle { margin: 0 0 8px; color: var(--sub); font-size: 16px; }
 .intro { margin: 0; color: var(--sub); font-size: 15px; line-height: 1.5; max-width: 760px; }
+.intro a { color: var(--accent); text-underline-offset: 2px; }
+.intro a:hover { color: var(--text); }
 
 .top { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; margin: 18px 0 12px; }
 #picker { width: 100%; height: auto; max-height: 260px; display: block; }

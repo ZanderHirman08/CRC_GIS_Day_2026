@@ -10,9 +10,14 @@ window.CONFIG = {
   // ── Text (yours to write) ──────────────────────────────────
   text: {
     pageTitle: "",          // browser tab title
-    title: "",              // big heading
-    subtitle: "",           // line under the heading
-    intro: "",              // paragraph under the subtitle
+    title: "Every Building in the CRC",   // big heading
+    subtitle: "292,209 buildings across 10 coastal Georgia counties · GIS Day 2026",   // line under the heading
+    // paragraph under the subtitle (HTML allowed; links open in a new tab)
+    intro: "Pick a county to see every building footprint (2018) in the Coastal Regional Commission region. " +
+      "Switch to <em>Sorted</em> to line them up from largest to smallest, or open <em>Stats</em> for the breakdown " +
+      "by building type and size. Click any building on the map to see how it ranks. Inspired by " +
+      "<a href=\"https://abenrob.com/\">Adam Roberts</a>'s 30 Day Map Challenge, " +
+      "<a href=\"https://abenrob.github.io/30daymap2026/day-03-polygons/#a=4&v=map\">day 3</a>.",
     backLink: { label: "", url: "https://zanderhirman08.github.io/CRCProjects-/" },
     footer: "",             // sources / credits line at the bottom (HTML allowed)
 
