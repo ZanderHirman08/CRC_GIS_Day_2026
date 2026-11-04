@@ -48,9 +48,20 @@ body.v-stats .canvas-only { display: none; }
 #cv.dragging { cursor: grabbing; }
 #stats { display: none; padding: 20px; overflow: auto; height: 100%; }
 body.v-stats #stats { display: block; }
-body.v-stats #cv, body.v-stats #scale { display: none; }
+body.v-stats #cv, body.v-stats #scale, body.v-stats .sel-panel { display: none !important; }
 #tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--sub); display: none; white-space: nowrap; line-height: 1.5; }
 #tip strong { color: var(--text); }
+.sel-panel { position: absolute; top: 10px; right: 10px; width: 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--sub); line-height: 1.5; }
+.sel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sel-head strong { color: var(--text); font-size: 14px; }
+.sel-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+.sel-close:hover { color: var(--text); }
+.sel-class { display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; }
+.sel-class i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sel-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-top: 1px solid var(--line); }
+.sel-row b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sel-crc { color: var(--muted); padding: 3px 0; border-top: 1px solid var(--line); }
+@media (max-width: 720px) { .sel-panel { left: 10px; right: 10px; width: auto; top: auto; bottom: 34px; } }
 #scale { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
 #scale i { display: block; height: 2px; background: var(--muted); margin-bottom: 4px; }
 #message { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; }

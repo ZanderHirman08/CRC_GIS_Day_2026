@@ -10,6 +10,7 @@ Output (in OUT_FOLDER, normally the repo's data folder):
   - counties/<county>.json   one file per county, read by the page when that county is picked
                              row = [class, prim_occ index, area m², long-side angle, x dm, y dm, rings]
   - index.json               small summary of every county (Stats tab, facts line, picker)
+  - ranks.json               every building's size, per class, for CRC-wide ranks
 
 Each county layer is read and written on its own. Nothing is merged.
 
@@ -342,6 +343,18 @@ def main():
         json.dump(dict(classes=CLASSES, prims=prims, counties=summaries,
                        pick=dict(w=round((X1 - X0) / 10), h=round((Y1 - Y0) / 10), counties=pick)),
                   f, separators=(",", ":"))
+    # data/ranks.json: every building's size across all counties, per class, for the
+    # page's CRC-wide ranks (same as scripts/build_ranks.py)
+    ranks = [[] for _ in CLASSES]
+    for recs in per_county.values():
+        for r in recs:
+            ranks[r["cls"]].append(int(round(round(r["area"], 1) * 10)))
+    out = []
+    for areas in ranks:
+        areas.sort(reverse=True)
+        out.append([a if i == 0 else areas[i - 1] - a for i, a in enumerate(areas)])
+    with open(os.path.join(OUT_FOLDER, "ranks.json"), "w") as f:
+        json.dump(dict(unit=0.1, classes=out), f, separators=(",", ":"))
     log(f"Done: {OUT_FOLDER}")
 
 

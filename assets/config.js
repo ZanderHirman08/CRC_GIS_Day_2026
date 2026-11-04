@@ -54,6 +54,17 @@ window.CONFIG = {
       rowFootprint: "Footprint"
     },
 
+    // Panel shown when you click a building. {rank} and {total} are filled in.
+    selection: {
+      size: "Size",
+      countyRank: "Size rank in county",
+      crcRank: "Size rank in CRC",
+      classCountyRank: "Class rank in county",
+      classCrcRank: "Class rank in CRC",
+      rankFormat: "#{rank} of {total}",
+      close: "Close"
+    },
+
     // Poster PNG
     poster: {
       title: "",            // defaults to text.title if empty
@@ -94,6 +105,7 @@ window.CONFIG = {
     accent: "#888888",      // selected tab, picker highlight, facts numbers
     countyOutline: "#4a5060",
     hover: "#ffffff",
+    selected: "#ffffff",    // outline of the clicked building
     font: "system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
 

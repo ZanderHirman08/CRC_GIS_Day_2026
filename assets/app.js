@@ -20,6 +20,8 @@ let view = CFG.defaultView || "map";
 let anim = 0;              // 0 = map, 1 = sorted
 let layout = null;
 let hover = -1;
+let selected = -1;         // index into cur.B of the clicked building
+let RANKS = null;          // data/ranks.json, decoded: per class, every CRC building's area ×10, largest first
 let active = null;         // Set of class indices shown at full strength (null = all)
 let zoom = { k: 1, x: 0, y: 0 };
 let pathCache = null;
@@ -149,6 +151,7 @@ async function load(slug) {
   message("");
   cur = cache[slug];
   hover = -1;
+  closeSelection();
   zoom = { k: 1, x: 0, y: 0 };
   layout = null;
   pathCache = null;
@@ -445,6 +448,9 @@ function draw() {
   const out = renderScene(ctx, box, e, L, zoom.k, zoom.x, zoom.y, null, paths);
   if (still && !paths) pathCache = { key, k: zoom.k, paths: out.paths };
 
+  if (selected >= 0 && still && !(L && !cur.B[selected].vis)) {
+    outlineBuilding(cur.B[selected], out.f, e, L, (CFG.theme || {}).selected || "#ffffff", 2.5);
+  }
   if (hover >= 0 && still) {
     const b = cur.B[hover];
     const [ox, oy, th] = place(b, out.f, e, L);
@@ -557,9 +563,35 @@ cv.addEventListener("pointermove", (e) => {
   hoverAt(e);
 });
 const endDrag = () => { drag = null; cv.classList.remove("dragging"); };
-cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointerup", (e) => {
+  const click = drag && !drag.moved;
+  endDrag();
+  if (!click) return;
+  const r = cv.getBoundingClientRect();
+  const i = pickAt(e.clientX - r.left, e.clientY - r.top);
+  if (i >= 0) selectBuilding(i); else closeSelection();
+});
 cv.addEventListener("pointercancel", endDrag);
 cv.addEventListener("pointerleave", () => { if (!drag) { hover = -1; $("tip").style.display = "none"; draw(); } });
+
+// Building under a canvas point (smallest wins when outlines overlap), or -1
+function pickAt(sx, sy) {
+  if (!cur || !(anim === 0 || anim === 1)) return -1;
+  const px = (sx - zoom.x) / zoom.k, py = (sy - zoom.y) / zoom.k;
+  const e = anim, L = e ? layout : null, f = fit(e, screenBox(), L), s = f.s;
+  const slop = 3 / zoom.k;
+  let best = -1, bestA = Infinity;
+  for (let i = 0; i < cur.B.length; i++) {
+    const b = cur.B[i];
+    if (active && !active.has(b.t)) continue;
+    if (e && !b.vis) continue;
+    let x0, y0, x1, y1;
+    if (e) { x0 = f.lx + (b.sx - b.bw / 2) * s; y0 = f.ly + (b.sy - b.bh / 2) * s; x1 = x0 + b.bw * s; y1 = y0 + b.bh * s; }
+    else { x0 = f.mx + (b.cx + b.x0) * s; y0 = f.my + (b.cy + b.y0) * s; x1 = f.mx + (b.cx + b.x1) * s; y1 = f.my + (b.cy + b.y1) * s; }
+    if (px >= x0 - slop && px <= x1 + slop && py >= y0 - slop && py <= y1 + slop && b.area < bestA) { best = i; bestA = b.area; }
+  }
+  return best;
+}
 
 let hoverReq = 0;
 function hoverAt(ev) {
@@ -568,19 +600,7 @@ function hoverAt(ev) {
   hoverReq = requestAnimationFrame(() => {
     const r = cv.getBoundingClientRect();
     const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
-    const px = (sx - zoom.x) / zoom.k, py = (sy - zoom.y) / zoom.k;
-    const e = anim, L = e ? layout : null, f = fit(e, screenBox(), L), s = f.s;
-    const slop = 3 / zoom.k;
-    let best = -1, bestA = Infinity;
-    for (let i = 0; i < cur.B.length; i++) {
-      const b = cur.B[i];
-      if (active && !active.has(b.t)) continue;
-      if (e && !b.vis) continue;
-      let x0, y0, x1, y1;
-      if (e) { x0 = f.lx + (b.sx - b.bw / 2) * s; y0 = f.ly + (b.sy - b.bh / 2) * s; x1 = x0 + b.bw * s; y1 = y0 + b.bh * s; }
-      else { x0 = f.mx + (b.cx + b.x0) * s; y0 = f.my + (b.cy + b.y0) * s; x1 = f.mx + (b.cx + b.x1) * s; y1 = f.my + (b.cy + b.y1) * s; }
-      if (px >= x0 - slop && px <= x1 + slop && py >= y0 - slop && py <= y1 + slop && b.area < bestA) { best = i; bestA = b.area; }
-    }
+    const best = pickAt(sx, sy);
     if (best !== hover) { hover = best; draw(); }
     const tip = $("tip");
     if (best < 0) { tip.style.display = "none"; return; }
@@ -591,6 +611,100 @@ function hoverAt(ev) {
     tip.style.top = `${Math.min(sy + 12, r.height - tip.offsetHeight - 4)}px`;
   });
 }
+
+// ── selection + ranks ──────────────────────────────────────────
+function outlineBuilding(b, f, e, L, color, width) {
+  const [ox, oy, th] = place(b, f, e, L);
+  ctx.save();
+  ctx.translate(zoom.x, zoom.y); ctx.scale(zoom.k, zoom.k);
+  const p = new Path2D(), c = Math.cos(th), sn = Math.sin(th), s = f.s;
+  for (const a of b.rs) {
+    for (let i = 0; i < a.length; i += 2) {
+      const X = ox + (c * a[i] - sn * a[i + 1]) * s, Y = oy + (sn * a[i] + c * a[i + 1]) * s;
+      i ? p.lineTo(X, Y) : p.moveTo(X, Y);
+    }
+    p.closePath();
+  }
+  // a ring around tiny buildings so the selection is visible at county scale
+  if (b.rad * s * zoom.k < 6) p.arc(ox, oy, 8 / zoom.k, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width / zoom.k;
+  ctx.stroke(p);
+  ctx.restore();
+}
+
+async function loadRanks() {
+  if (RANKS) return RANKS;
+  const r = await fetch("data/ranks.json");
+  if (!r.ok) throw new Error(r.status);
+  const d = await r.json();
+  RANKS = d.classes.map((deltas) => {
+    const a = new Int32Array(deltas.length);
+    let v = 0;
+    for (let i = 0; i < deltas.length; i++) { v = i ? v - deltas[i] : deltas[i]; a[i] = v; }
+    return a;
+  });
+  return RANKS;
+}
+
+// How many values in a largest-first array are bigger than v
+function countLarger(arr, v) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] > v) lo = m + 1; else hi = m; }
+  return lo;
+}
+
+function rankText(rank, total) {
+  const tpl = (T.selection || {}).rankFormat || "#{rank} of {total}";
+  return esc(tpl.replace("{rank}", fmt(rank)).replace("{total}", fmt(total)));
+}
+
+async function selectBuilding(i) {
+  selected = i;
+  draw();
+  const b = cur.B[i], S = T.selection || {};
+  const a10 = Math.round(b.area * 10);
+  // County ranks: 1 + number of buildings with a bigger footprint (equal sizes share a rank)
+  let cAll = 0, cCls = 0, nCls = 0;
+  for (const x of cur.B) {
+    const bigger = Math.round(x.area * 10) > a10;
+    if (bigger) cAll++;
+    if (x.t === b.t) { nCls++; if (bigger) cCls++; }
+  }
+  const row = (label, name, value) =>
+    `<div class="sel-row"><span class="${label ? "" : "ph"}">${esc(label || `[${name}]`)}</span><b>${value}</b></div>`;
+  const head = `<div class="sel-head"><strong>${esc(IDX.prims[b.prim])}</strong>
+      <button type="button" class="sel-close" aria-label="${esc(S.close || "Close")}">&times;</button></div>
+    <div class="sel-class"><i style="background:${esc(classColor(b.t))}"></i>${esc(className(b.t))}</div>`;
+  const rowsCounty = row(S.size, "selection.size", `${fmt(b.area * SQFT)} ft²`) +
+    row(S.countyRank, "selection.countyRank", rankText(cAll + 1, cur.B.length)) +
+    row(S.classCountyRank, "selection.classCountyRank", rankText(cCls + 1, nCls));
+  const panel = $("sel");
+  panel.innerHTML = head + rowsCounty + `<div class="sel-crc">…</div>`;
+  panel.hidden = false;
+  panel.querySelector(".sel-close").onclick = closeSelection;
+  try {
+    const R = await loadRanks();
+    if (selected !== i) return;
+    let all = 0, total = 0;
+    for (const arr of R) { all += countLarger(arr, a10); total += arr.length; }
+    const clsArr = R[b.t] || new Int32Array(0);
+    panel.querySelector(".sel-crc").outerHTML =
+      row(S.crcRank, "selection.crcRank", rankText(all + 1, total)) +
+      row(S.classCrcRank, "selection.classCrcRank", rankText(countLarger(clsArr, a10) + 1, clsArr.length));
+  } catch (err) {
+    const el = panel.querySelector(".sel-crc");
+    if (el) el.textContent = "data/ranks.json could not be loaded.";
+  }
+}
+
+function closeSelection() {
+  selected = -1;
+  const panel = $("sel");
+  if (panel) panel.hidden = true;
+  if (cur) draw();
+}
+addEventListener("keydown", (e) => { if (e.key === "Escape" && selected >= 0) closeSelection(); });
 
 // ── stats tab ───────────────────────────────────────────────────
 function bar(parts, total, colors) {

@@ -11,7 +11,8 @@ assets/config.js         all text, colors and defaults (edit this)
 assets/app.js            drawing, sorting, stats, poster export
 assets/style.css         layout
 scripts/prep_buildings_arcpy.py  builds data/ from the footprints (ArcGIS Pro)
-data/                    generated: index.json + counties/<slug>.json
+data/                    generated: index.json, ranks.json + counties/<slug>.json
+scripts/build_ranks.py   rebuilds data/ranks.json from the county files (plain Python)
 ```
 
 ## Build the data (ArcGIS Pro)
@@ -27,6 +28,7 @@ data/                    generated: index.json + counties/<slug>.json
 
 Each county layer is processed on its own and written to `data/counties/<county>.json`;
 the county comes from the layer name. `data/index.json` holds the per-county summaries.
+`data/ranks.json` (every building's size across all counties) powers the CRC-wide ranks shown when you click a building.
 The script prints any `OCC_CLS` values it couldn't match ("Unclassified").
 
 ## Preview
