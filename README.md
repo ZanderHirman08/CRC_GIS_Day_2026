@@ -31,6 +31,11 @@ the county comes from the layer name. `data/index.json` holds the per-county sum
 `data/ranks.json` (every building's size across all counties) powers the CRC-wide ranks shown when you click a building.
 The script prints any `OCC_CLS` values it couldn't match ("Unclassified").
 
+## After editing assets/config.js, app.js or style.css
+
+Change the `?v=` number on those files in `index.html` (e.g. `?v=2` → `?v=3`) so browsers load
+the new version instead of a cached copy. Data files are always re-checked, so no step is needed there.
+
 ## Preview
 
 ```sh

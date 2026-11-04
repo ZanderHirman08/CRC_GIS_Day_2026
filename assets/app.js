@@ -120,7 +120,7 @@ function writeHash() {
 async function start() {
   applyConfig();
   try {
-    const r = await fetch("data/index.json");
+    const r = await fetch("data/index.json", { cache: "no-cache" });
     if (!r.ok) throw new Error(r.status);
     IDX = await r.json();
   } catch (e) {
@@ -140,7 +140,7 @@ async function load(slug) {
   message("Loading…");
   try {
     if (!cache[slug]) {
-      const r = await fetch(`data/counties/${slug}.json`);
+      const r = await fetch(`data/counties/${slug}.json`, { cache: "no-cache" });
       if (!r.ok) throw new Error(r.status);
       cache[slug] = prep(await r.json());
     }
@@ -637,7 +637,7 @@ function outlineBuilding(b, f, e, L, color, width) {
 
 async function loadRanks() {
   if (RANKS) return RANKS;
-  const r = await fetch("data/ranks.json");
+  const r = await fetch("data/ranks.json", { cache: "no-cache" });
   if (!r.ok) throw new Error(r.status);
   const d = await r.json();
   const decode = (deltas) => {
