@@ -1003,6 +1003,7 @@ async function makeImage(W, H) {
   const th = CFG.theme || {}, font = th.font || "sans-serif", P = T.poster || {};
   const u = W / 1080;                      // type scale relative to a 1080 px wide layout
   const fill = (t) => (t || "").replace(/\{county\}/g, cur.name);
+  const title = imageTitle();
   g.fillStyle = th.mapBg || th.bg || "#0f1115";
   g.fillRect(0, 0, W, H);
 
@@ -1029,7 +1030,7 @@ async function makeImage(W, H) {
   g.fillStyle = th.mapText || th.text || "#fff";
   g.textBaseline = "alphabetic";
   g.font = `700 ${40 * u}px ${font}`;
-  g.fillText(fill(P.title || T.title), 60 * u, 100 * u, W - 120 * u - logoW);
+  g.fillText(title, 60 * u, 100 * u, W - 120 * u - logoW);
   g.fillStyle = th.mapSub || th.sub || "#ccc";
   g.font = `400 ${22 * u}px ${font}`;
   g.fillText(fill(P.subtitle), 60 * u, 142 * u, W - 120 * u - logoW);
@@ -1075,6 +1076,14 @@ async function makeImage(W, H) {
   return blob;
 }
 
+// Title for the share image: map view vs sorted view (largest / smallest)
+function imageTitle() {
+  const P = T.poster || {};
+  let t = P.title || T.title;
+  if (view === "sorted") t = (opts.show === "smallest" ? P.titleSmallest : P.titleSorted) || t;
+  return (t || "").replace(/\{county\}/g, cur.name);
+}
+
 function toast(msg) {
   const t = $("toast");
   t.textContent = msg;
@@ -1095,7 +1104,7 @@ $("share").onclick = async () => {
     const blob = await makeImage(W, H);
     const file = new File([blob], `${cur.slug}-${view}.png`, { type: "image/png" });
     const url = location.href;
-    const title = ((T.poster || {}).title || T.title || "").replace(/\{county\}/g, cur.name);
+    const title = imageTitle();
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title, text: title, url }); }
       catch (err) { if (err.name !== "AbortError") throw err; }

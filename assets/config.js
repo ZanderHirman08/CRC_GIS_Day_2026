@@ -107,7 +107,9 @@ window.CONFIG = {
 
     // Share image (current county and view); {county} is replaced with the county name
     poster: {
-      title: "Every Building in {county} County",
+      title: "Every Building in {county} County",               // map view
+      titleSorted: "Largest buildings in {county} County",       // sorted view (All / Largest 100)
+      titleSmallest: "Smallest buildings in {county} County",    // sorted view, Smallest 100
       subtitle: "{county} County, Georgia · every building, at the same scale",
       credits: "Data: USA Structures (ORNL/FEMA, 2018) via CRC · TIGER/Line 2026 water. " +
         "Map: Zander Hirman, Coastal Regional Commission · GIS Day 2026. Inspired by Adam Roberts."
