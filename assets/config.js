@@ -73,18 +73,21 @@ window.CONFIG = {
   },
 
   // ── Colors ─────────────────────────────────────────────────
-  // One color per OCC_CLS class. Checked for colorblind and normal-vision separation
-  // (every pair) on the dark background; re-check if you change any of them.
+  // One color per OCC_CLS class, from the APA LBCS color scheme (Structure/Function
+  // dimensions). Where LBCS gives two classes the same hue (Government/Education blue,
+  // Industrial/Assembly purple) they are split by lightness, and blues/purples are
+  // lightened enough to show on the dark background. Every pair checked for
+  // normal-vision and colorblind separation; re-check if you change any of them.
   classColors: {
-    "Residential":      "#4f8fb8",
-    "Commercial":       "#c98500",
-    "Industrial":       "#b04128",
-    "Government":       "#f0f0f0",
-    "Education":        "#e74a98",
-    "Agriculture":      "#07c480",
-    "Assembly":         "#b1a0ed",
-    "Utility and Misc": "#c5c536",
-    "Unclassified":     "#636363"
+    "Residential":      "#ffff00",
+    "Commercial":       "#ff0000",
+    "Industrial":       "#980be7",
+    "Government":       "#659cff",
+    "Education":        "#345cbb",
+    "Agriculture":      "#228b22",
+    "Assembly":         "#9867bd",
+    "Utility and Misc": "#bebebe",
+    "Unclassified":     "#ffffff"
   },
 
   // Display names for the classes (leave as-is or rename)
@@ -104,8 +107,8 @@ window.CONFIG = {
     muted: "#8a8f99",
     accent: "#e0573e",      // selected tab, picker highlight, facts numbers
     countyOutline: "#4a5060",
-    hover: "#e0573e",
-    selected: "#e0573e",    // outline of the clicked building
+    hover: "#00e5ff",
+    selected: "#00e5ff",    // outline of the clicked building
     font: "system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
 
