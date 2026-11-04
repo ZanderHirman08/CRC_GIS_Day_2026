@@ -73,21 +73,20 @@ window.CONFIG = {
   },
 
   // ── Colors ─────────────────────────────────────────────────
-  // One color per OCC_CLS class, from the APA LBCS color scheme (Structure/Function
-  // dimensions). Where LBCS gives two classes the same hue (Government/Education blue,
-  // Industrial/Assembly purple) they are split by lightness, and blues/purples are
-  // lightened enough to show on the dark background. Residential is a muted LBCS yellow;
-  // Utility uses LBCS gray52. Every pair checked for
-  // normal-vision and colorblind separation; re-check if you change any of them.
+  // One color per OCC_CLS class, based on the APA LBCS color scheme: muted yellow
+  // Residential, brick-red Commercial, and paired families for related classes —
+  // Government/Education (light/dark blue) and Industrial/Utility (light/deep purple).
+  // Every pair checked for normal-vision and colorblind separation on the dark
+  // background; re-check if you change any of them.
   classColors: {
     "Residential":      "#c9b458",
-    "Commercial":       "#ff0000",
-    "Industrial":       "#980be7",
-    "Government":       "#659cff",
-    "Education":        "#345cbb",
-    "Agriculture":      "#228b22",
-    "Assembly":         "#d3b3fe",
-    "Utility and Misc": "#868686",
+    "Commercial":       "#944b41",
+    "Industrial":       "#9c76f3",
+    "Government":       "#5eaceb",
+    "Education":        "#1e66d1",
+    "Agriculture":      "#668e4f",
+    "Assembly":         "#b6899d",
+    "Utility and Misc": "#854da1",
     "Unclassified":     "#ffffff"
   },
 
