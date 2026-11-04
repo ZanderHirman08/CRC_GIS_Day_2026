@@ -993,8 +993,9 @@ $("savePoster").onclick = async () => {
 addEventListener("hashchange", () => {
   const h = readHash();
   if (!cur) return;
-  if (h.c && h.c !== cur.slug) load(h.c);
-  else if (h.v && h.v !== view) setView(h.v);
+  const v = ["map", "sorted", "stats"].includes(h.v) ? h.v : view;
+  if (h.c && h.c !== cur.slug) { view = v; load(h.c); }   // load() applies the view
+  else if (v !== view) setView(v);
 });
 
 start();
