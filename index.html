@@ -4,14 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title></title>
-<link rel="stylesheet" href="assets/style.css?v=15">
+<link rel="stylesheet" href="assets/style.css?v=16">
 </head>
 <body>
 
 <header class="page-head">
-  <h1 id="title"></h1>
-  <p class="subtitle" id="subtitle"></p>
-  <p class="intro" id="intro"></p>
+  <img id="logo" class="logo" alt="" hidden>
+  <div class="head-text">
+    <h1 id="title"></h1>
+    <p class="subtitle" id="subtitle"></p>
+    <p class="intro" id="intro"></p>
+  </div>
 </header>
 
 <section class="top">
@@ -24,10 +27,17 @@
     </div>
     <div id="countyName" class="county-name"></div>
     <div id="facts" class="facts"></div>
+    <div class="legend" id="legend"></div>
   </div>
-  <div id="mini" class="mini" aria-label="Location of the selected building">
-    <canvas id="miniCv"></canvas>
-    <div id="miniCap" class="mini-cap"></div>
+  <div class="side">
+    <!-- Map view: rank panel for the clicked building -->
+    <div id="selHint" class="sel-hint"></div>
+    <div id="sel" class="sel-panel" role="region" aria-label="Selected building" aria-live="polite" hidden></div>
+    <!-- Sorted view: where the clicked building really is -->
+    <div id="mini" class="mini" aria-label="Location of the selected building">
+      <canvas id="miniCv"></canvas>
+      <div id="miniCap" class="mini-cap"></div>
+    </div>
   </div>
 </section>
 
@@ -54,15 +64,13 @@
   <canvas id="cv"></canvas>
   <div id="stats"></div>
   <div id="tip" role="status"></div>
-  <div id="sel" class="sel-panel" role="region" aria-label="Selected building" aria-live="polite" hidden></div>
   <div id="scale"><i></i><span></span></div>
   <div id="message"></div>
 </div>
-<div class="legend" id="legend"></div>
 
 <footer class="page-foot" id="footer"></footer>
 
-<script src="assets/config.js?v=15"></script>
-<script src="assets/app.js?v=15"></script>
+<script src="assets/config.js?v=16"></script>
+<script src="assets/app.js?v=16"></script>
 </body>
 </html>

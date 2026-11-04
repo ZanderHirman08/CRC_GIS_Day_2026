@@ -92,13 +92,22 @@ function applyConfig() {
   const th = CFG.theme || {};
   const root = document.documentElement.style;
   const map = { bg: "--bg", panel: "--panel", line: "--line", text: "--text", sub: "--sub", muted: "--muted",
-    accent: "--accent", countyOutline: "--outline", font: "--font" };
+    accent: "--accent", countyOutline: "--outline", font: "--font",
+    mapBg: "--mapbg", mapText: "--maptext", mapMuted: "--mapmuted" };
   for (const [k, v] of Object.entries(map)) if (th[k]) root.setProperty(v, th[k]);
 
   document.title = T.pageTitle || T.title || "[pageTitle]";
   put($("title"), T.title, "title");
   put($("subtitle"), T.subtitle, "subtitle");
   put($("intro"), T.intro, "intro", true);
+  const logo = $("logo");
+  if (CFG.logo && CFG.logo.src) {
+    logo.onload = () => { logo.hidden = false; };
+    logo.onerror = () => { logo.hidden = true; };
+    logo.alt = CFG.logo.alt || "";
+    logo.src = CFG.logo.src;
+  }
+  put($("selHint"), (T.selection || {}).hint, "selection.hint");
   put($("footer"), T.footer, "footer", true);
   // links in config text open in a new tab
   document.querySelectorAll("#intro a, #footer a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
@@ -435,7 +444,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
   g.globalAlpha = 1;
   if (L && L.grp && e > 0) {
     g.globalAlpha = e;
-    g.fillStyle = th.sub || "#c9ccd3";
+    g.fillStyle = th.mapSub || th.sub || "#c9ccd3";
     const fs = scaleOut && scaleOut.labelPx ? scaleOut.labelPx : 12;
     g.font = `500 ${fs / k}px ${th.font || "sans-serif"}`;
     for (const lab of L.labels) g.fillText(groupLabel(L, lab), f.lx, f.ly + lab[1] * f.sL - 4 / k);
@@ -459,7 +468,7 @@ function draw() {
   if (!cur || view === "stats") return;
   const w = stage.clientWidth, h = stage.clientHeight, r = dpr();
   ctx.setTransform(r, 0, 0, r, 0, 0);
-  ctx.fillStyle = (CFG.theme || {}).bg || "#0f1115";
+  ctx.fillStyle = (CFG.theme || {}).mapBg || (CFG.theme || {}).bg || "#0f1115";
   ctx.fillRect(0, 0, w, h);
   const e = ease(anim), box = screenBox();
   const L = e > 0 ? layout : null;
@@ -736,6 +745,7 @@ async function selectBuilding(i) {
     ${heading(S.crcHeading, "selection.crcHeading")}
     <div class="sel-crc">…</div>`;
   panel.hidden = false;
+  $("selHint").hidden = true;
   panel.querySelector(".sel-close").onclick = closeSelection;
   try {
     const R = await loadRanks();
@@ -756,6 +766,8 @@ function closeSelection() {
   selected = -1;
   const panel = $("sel");
   if (panel) panel.hidden = true;
+  const hint = $("selHint");
+  if (hint) hint.hidden = false;
   if (cur) draw();
 }
 addEventListener("keydown", (e) => { if (e.key === "Escape" && selected >= 0) closeSelection(); });
@@ -835,7 +847,7 @@ function drawMini() {
   const g = c.getContext("2d");
   g.setTransform(r, 0, 0, r, 0, 0);
   const th = CFG.theme || {};
-  g.fillStyle = th.bg || "#0f1115";
+  g.fillStyle = th.mapBg || th.bg || "#0f1115";
   g.fillRect(0, 0, w, h);
   const M = T.minimap || {};
   if (miniSel < 0) {
@@ -878,7 +890,7 @@ function drawMini() {
   if (b.rad * s < 10) { g.beginPath(); g.arc(w / 2, h / 2, 12, 0, Math.PI * 2); g.stroke(); }
   // scale bar
   const sc = niceScale(s, 50);
-  g.strokeStyle = g.fillStyle = th.muted || "#8a8f99";
+  g.strokeStyle = g.fillStyle = th.mapMuted || th.muted || "#8a8f99";
   g.lineWidth = 2;
   g.beginPath(); g.moveTo(10, h - 12); g.lineTo(10 + sc.px, h - 12); g.stroke();
   g.font = `11px ${th.font || "sans-serif"}`;
@@ -984,7 +996,7 @@ $("savePoster").onclick = async () => {
     const g = c.getContext("2d");
     const th = CFG.theme || {}, font = th.font || "sans-serif", P = T.poster || {};
     const u = W / 1080;                      // type scale relative to a 1080 px wide layout
-    g.fillStyle = th.bg || "#0f1115";
+    g.fillStyle = th.mapBg || th.bg || "#0f1115";
     g.fillRect(0, 0, W, H);
 
     const box = { x: 60 * u, y: 220 * u, w: W - 120 * u, h: H - 220 * u - 170 * u, pad: 0 };
@@ -993,11 +1005,11 @@ $("savePoster").onclick = async () => {
     const L = e ? computeLayout(box, labelPx) : null;
     const out = renderScene(g, box, e, L, 1, 0, 0, { labelPx }, null);
 
-    g.fillStyle = th.text || "#fff";
+    g.fillStyle = th.mapText || th.text || "#fff";
     g.textBaseline = "alphabetic";
     g.font = `700 ${40 * u}px ${font}`;
     g.fillText(P.title || T.title || "", 60 * u, 90 * u);
-    g.fillStyle = th.sub || "#ccc";
+    g.fillStyle = th.mapSub || th.sub || "#ccc";
     g.font = `400 ${24 * u}px ${font}`;
     g.fillText((P.subtitle || "").replace("{county}", cur.name), 60 * u, 132 * u);
 
@@ -1010,13 +1022,13 @@ $("savePoster").onclick = async () => {
       if (x + 18 * u + wName > W - 240 * u) { x = 60 * u; y += 26 * u; }
       g.fillStyle = classColor(t);
       g.fillRect(x, y - 12 * u, 12 * u, 12 * u);
-      g.fillStyle = th.sub || "#ccc";
+      g.fillStyle = th.mapSub || th.sub || "#ccc";
       g.fillText(name, x + 18 * u, y);
       x += 18 * u + wName + 22 * u;
     }
     // scale bar
     const sc = niceScale(out.f.s, 100 * u);
-    g.strokeStyle = g.fillStyle = th.muted || "#888";
+    g.strokeStyle = g.fillStyle = th.mapMuted || th.muted || "#888";
     g.lineWidth = 2 * u;
     g.beginPath(); g.moveTo(W - 60 * u - sc.px, H - 126 * u); g.lineTo(W - 60 * u, H - 126 * u); g.stroke();
     g.textAlign = "right";

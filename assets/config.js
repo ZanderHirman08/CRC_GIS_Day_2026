@@ -93,7 +93,8 @@ window.CONFIG = {
       crcHeading: "Across all 10 CRC counties",
       rankAll: "{rank} largest of {total} buildings",
       rankClass: "{rank} largest of {total} {class} buildings",
-      close: "Close"
+      close: "Close",
+      hint: "Click any building on the map to see how it ranks."   // shown before a click
     },
 
     // Mini-map (sorted view): shown until a building is clicked
@@ -136,20 +137,30 @@ window.CONFIG = {
 
   // Page colors (also set as CSS variables)
   theme: {
-    bg: "#0f1115",
-    panel: "#161920",
-    line: "#2a2e37",
-    text: "#e8eaee",
-    sub: "#c9ccd3",
-    muted: "#8a8f99",
-    accent: "#00e5ff",      // selected tab, picker highlight, facts numbers
-    countyOutline: "#4a5060",
+    // Page (CRC logo palette): Pearl Beige page, Deep Space Blue text, Pine Teal accent
+    bg: "#E4DEBC",
+    panel: "#ece6c9",
+    line: "#cbc39d",
+    text: "#082C41",
+    sub: "#165C61",
+    muted: "#5f6d66",
+    accent: "#095041",      // selected tab, picker highlight, facts numbers, links
+    // Map canvas (map, sorted, mini-map, poster): a Deep Space Blue window
+    mapBg: "#082C41",
+    mapText: "#E4DEBC",
+    mapSub: "#c8cbb4",
+    mapMuted: "#8ea5ad",
+    countyOutline: "#4f7385",
+    water: "#165C61",       // ocean, sounds, rivers (fill)
+    river: "#2a8a8f",       // river lines
     hover: "#00e5ff",
-    water: "#14273b",       // ocean, sounds, rivers (fill)
-    river: "#2b4f73",       // river lines
     selected: "#00e5ff",    // outline of the clicked building
     font: "system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
+
+
+  // Logo left of the title (hidden until the file exists)
+  logo: { src: "assets/crc-logo.png", alt: "Coastal Regional Commission of Georgia" },
 
   // ── Behavior ───────────────────────────────────────────────
   defaultCounty: "chatham",     // slug from data/index.json
