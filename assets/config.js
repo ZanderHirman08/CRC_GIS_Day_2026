@@ -18,6 +18,12 @@ window.CONFIG = {
       "by building type and size. Click any building on the map to see how it ranks. Inspired by " +
       "<a href=\"https://abenrob.com/\">Adam Roberts</a>'s 30 Day Map Challenge, " +
       "<a href=\"https://abenrob.github.io/30daymap2026/day-03-polygons/#a=4&v=map\">day 3</a>.",
+    // Data sources, shown under the intro (HTML allowed)
+    sources: "<b>Sources:</b> Building footprints: USA Structures, Oak Ridge National Laboratory (ORNL) and " +
+      "FEMA Geospatial Response Office (data collection 2018), via the Coastal Regional Commission. " +
+      "County boundaries: Coastal Regional Commission. Water: U.S. Census Bureau TIGER/Line 2026 area and " +
+      "linear hydrography. Population and housing: U.S. Census Bureau, American Community Survey 2014–2018 " +
+      "5-year estimates. Colors based on the APA Land-Based Classification Standards (LBCS).",
     backLink: { label: "", url: "https://zanderhirman08.github.io/CRCProjects-/" },
     footer: "",             // sources / credits line at the bottom (HTML allowed)
 
@@ -32,7 +38,9 @@ window.CONFIG = {
     //   {medianHomeValue}  {medianIncome}  {pctVacant}  {pctOwner}  {pctRenter}
     //   {pctSingleFamily}  {pctMultiFamily}  {pctMobileHome}  (share of housing units)
     // e.g. "<b>{count}</b> buildings · {footprint} sq mi of footprint"
-    facts: "",
+    facts: "<b>{population}</b> people · <b>{housingUnits}</b> homes, built around <b>{medianYearBuilt}</b><br>" +
+      "<b>{pctSingleFamily}</b> single-family · <b>{pctMobileHome}</b> mobile homes · <b>{pctVacant}</b> vacant · " +
+      "median value <b>{medianHomeValue}</b>",
 
     // Tabs and controls
     tabs: { map: "Map", sorted: "Sorted", stats: "Stats" },
