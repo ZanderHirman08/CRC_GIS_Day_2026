@@ -99,10 +99,9 @@ function applyConfig() {
   put($("title"), T.title, "title");
   put($("subtitle"), T.subtitle, "subtitle");
   put($("intro"), T.intro, "intro", true);
-  put($("sources"), T.sources, "sources", true);
   put($("footer"), T.footer, "footer", true);
   // links in config text open in a new tab
-  document.querySelectorAll("#intro a, #sources a, #footer a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
+  document.querySelectorAll("#intro a, #footer a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
   const back = T.backLink || {};
   $("backLink").href = back.url || "#";
   put($("backLink"), back.label ? `← ${back.label}` : "", "backLink.label");

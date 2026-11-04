@@ -18,14 +18,13 @@ window.CONFIG = {
       "by building type and size. Click any building on the map to see how it ranks. Inspired by " +
       "<a href=\"https://abenrob.com/\">Adam Roberts</a>'s 30 Day Map Challenge, " +
       "<a href=\"https://abenrob.github.io/30daymap2026/day-03-polygons/#a=4&v=map\">day 3</a>.",
-    // Data sources, shown under the intro (HTML allowed)
-    sources: "<b>Sources:</b> Building footprints: USA Structures, Oak Ridge National Laboratory (ORNL) and " +
+    backLink: { label: "", url: "https://zanderhirman08.github.io/CRCProjects-/" },
+    // Sources / credits at the bottom of the page (HTML allowed)
+    footer: "<b>Sources:</b> Building footprints: USA Structures, Oak Ridge National Laboratory (ORNL) and " +
       "FEMA Geospatial Response Office (data collection 2018), via the Coastal Regional Commission. " +
       "County boundaries: Coastal Regional Commission. Water: U.S. Census Bureau TIGER/Line 2026 area and " +
       "linear hydrography. Population and housing: U.S. Census Bureau, American Community Survey 2014–2018 " +
       "5-year estimates. Colors based on the APA Land-Based Classification Standards (LBCS).",
-    backLink: { label: "", url: "https://zanderhirman08.github.io/CRCProjects-/" },
-    footer: "",             // sources / credits line at the bottom (HTML allowed)
 
     // Line under the county name. HTML allowed. Tokens filled from the data:
     //   {count} buildings   {footprint} footprint (sq mi)   {land} county land (sq mi)
