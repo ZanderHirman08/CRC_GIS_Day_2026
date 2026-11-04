@@ -276,7 +276,7 @@ function computeLayout(box, labelPx) {
   for (let i = 0; i < 6; i++) {
     L = layoutPass(labH, aspect, factor);
     const s = Math.min((box.w - 2 * box.pad) / L.W, (box.h - 2 * box.pad) / L.H);
-    if (opts.group) labH = labelPx / s;
+    if (opts.group) labH = (labelPx * 1.6) / s;
     const ratio = L.W / L.H / aspect;
     if (Math.abs(ratio - 1) < 0.03 && (!opts.group || i > 0)) break;
     factor /= Math.sqrt(ratio);
@@ -317,7 +317,8 @@ function buildPaths(f, e, L, k) {
     const [ox, oy, th] = place(b, f, e, L);
     const p = paths[b.t];
     if (b.rad * f.s < tiny) {
-      const side = Math.sqrt(b.area) * f.s;
+      // keep every building at least minPixelSize on screen so dense areas stay visible
+      const side = Math.max(Math.sqrt(b.area) * f.s, (CFG.minPixelSize ?? 1) / k);
       p.rect(ox - side / 2, oy - side / 2, side, side);
       continue;
     }

@@ -96,6 +96,7 @@ window.CONFIG = {
   defaultAlign: true,
   animationMs: 1600,
   dimAlpha: 0.12,               // opacity of classes that are switched off in the legend
+  minPixelSize: 1,              // smallest on-screen size of a building (px); 0 = true size
 
   // Poster export size in pixels (24 × 36 in at 300 dpi = 7200 × 10800)
   posterSize: { width: 7200, height: 10800 }
