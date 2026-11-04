@@ -31,9 +31,10 @@ COUNTY_FIELD = "NAME"
 GEOID_FIELD = "GEOID"
 OUT_FOLDER = r"C:\path\to\CRC_GIS_Day_2026\data"
 
-# Rivers drawn as lines: LINEARWATER features whose name contains one of these words
-# (e.g. "Savannah River", "Ogeechee River"). Small creeks are left out.
-RIVER_WORDS = ["River"]
+# Rivers drawn as lines: LINEARWATER features whose name contains one of these words.
+# TIGER abbreviates most names ("Ogeechee Riv"), so both spellings are listed.
+# Small creeks ("Crk") are left out.
+RIVER_WORDS = ["River", "Riv"]
 
 MIN_WATER_AREA = 2000   # m²; drops ponds smaller than this
 SIMPLIFY_M = 4          # outline simplification in metres
@@ -122,8 +123,10 @@ def main():
     lines_by_geoid = find_files(WATER_FOLDER, "linearwater")
     log(f"found {len(areas_by_geoid)} areawater and {len(lines_by_geoid)} linearwater files")
 
-    os.makedirs(os.path.join(OUT_FOLDER, "water"), exist_ok=True)
-    words = [w.lower() for w in RIVER_WORDS]
+    os.makedirs(os.path.abspath(os.path.join(OUT_FOLDER, "water")), exist_ok=True)
+    river_re = re.compile(r"\b(" + "|".join(re.escape(w) for w in RIVER_WORDS) + r")\b\.?", re.I)
+    out_dir = os.path.abspath(os.path.join(OUT_FOLDER, "water"))
+    log(f"writing to {out_dir}")
     for name in sorted(shapes):
         ext = shapes[name].extent
         x0, y0 = ext.XMin, ext.YMin
@@ -147,7 +150,7 @@ def main():
                 name_field = next((f for f in fields if f.upper() == "FULLNAME"), None)
                 with arcpy.da.SearchCursor(path, [name_field, "SHAPE@"], spatial_reference=sr) as cur:
                     for fullname, shp in cur:
-                        if shp is None or not fullname or not any(w in str(fullname).lower() for w in words):
+                        if shp is None or not fullname or not river_re.search(str(fullname)):
                             continue
                         g = shp.generalize(SIMPLIFY_M) or shp
                         for part in geom_rings(g):
@@ -157,9 +160,10 @@ def main():
             else:
                 log(f"  {name}: no linearwater file for GEOID {geoid}")
         slug = slugify(name)
-        with open(os.path.join(OUT_FOLDER, "water", f"{slug}.json"), "w") as f:
+        path = os.path.join(out_dir, f"{slug}.json")
+        with open(path, "w") as f:
             json.dump(dict(slug=slug, areas=areas, rivers=rivers), f, separators=(",", ":"))
-        log(f"  {name}: {len(areas)} water areas, {len(rivers)} river lines")
+        log(f"  {name}: {len(areas)} water areas, {len(rivers)} river lines -> {path}")
     log("Done")
 
 
