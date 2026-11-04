@@ -110,7 +110,6 @@ function applyConfig() {
   put($("lblGroup"), c.group, "controls.group");
   put($("lblAlign"), c.align, "controls.align");
   put($("lblShow"), c.show, "controls.show");
-  put($("lblN"), c.n, "controls.n");
   $("lblShowAll").textContent = c.showAll || "[showAll]";
   $("lblShowLargest").textContent = c.showLargest || "[showLargest]";
   $("lblShowSmallest").textContent = c.showSmallest || "[showSmallest]";
@@ -120,8 +119,6 @@ function applyConfig() {
   $("optGroup").checked = opts.group;
   $("optAlign").checked = opts.align;
   $("optShow").value = opts.show;
-  $("optN").value = opts.n;
-  $("nWrap").hidden = opts.show === "all";
 }
 
 function message(text) {
@@ -283,19 +280,16 @@ function layoutPass(labH, aspect, widthFactor = 1) {
     if (opts.align && y1 - y0 > x1 - x0) { th2 = th + Math.PI / 2; [x0, x1, y0, y1] = [-y1, -y0, x0, x1]; }
     b.th = th2; b.bw = x1 - x0; b.bh = y1 - y0; b.bcx = (x0 + x1) / 2; b.bcy = (y0 + y1) / 2;
   }
-  // Which buildings the sorted view shows: all, or the largest / smallest N of each class.
-  const byClass = new Map();
-  B.forEach((b, i) => { if (!byClass.has(b.t)) byClass.set(b.t, []); byClass.get(b.t).push(i); });
-  const totals = {};
-  for (const [t, idx] of byClass) {
-    totals[t] = idx.length;
-    idx.sort((i, j) => B[j].area - B[i].area);
-    const keep = opts.show === "largest" ? idx.slice(0, opts.n)
-      : opts.show === "smallest" ? idx.slice(Math.max(0, idx.length - opts.n)) : idx;
-    for (const i of idx) B[i].vis = false;
-    for (const i of keep) B[i].vis = true;
-  }
-  const order = B.map((b, i) => i).filter((i) => B[i].vis);
+  // Which buildings the sorted view shows: all, or the county's largest / smallest N
+  // (whatever their class).
+  const bySize = B.map((b, i) => i).sort((i, j) => B[j].area - B[i].area);
+  const keep = opts.show === "largest" ? bySize.slice(0, opts.n)
+    : opts.show === "smallest" ? bySize.slice(Math.max(0, bySize.length - opts.n)) : bySize;
+  for (const b of B) b.vis = false;
+  for (const i of keep) B[i].vis = true;
+  const inClass = {};
+  for (const i of keep) inClass[B[i].t] = (inClass[B[i].t] || 0) + 1;
+  const order = keep.slice();
   order.sort((i, j) => (opts.group ? B[i].t - B[j].t : 0) || B[j].area - B[i].area);
 
   const gap = Math.max(0.5, Math.sqrt(cur.B.reduce((s, b) => s + b.area, 0) / cur.B.length) * 0.08);
@@ -308,7 +302,7 @@ function layoutPass(labH, aspect, widthFactor = 1) {
     const b = B[i];
     if (opts.group && b.t !== lastT) {
       if (x > 0) { y += rowH + gap; x = 0; rowH = 0; }
-      y += labH + gap * 2; labels.push([b.t, y, Math.min(opts.n, totals[b.t]), totals[b.t]]); lastT = b.t;
+      y += labH + gap * 2; labels.push([b.t, y, inClass[b.t], keep.length]); lastT = b.t;
     }
     if (x > 0 && x + b.bw > W) { x = 0; y += rowH + gap; rowH = 0; }
     b.sx = x + b.bw / 2; b.sy = y + b.bh / 2; x += b.bw + gap;
@@ -370,7 +364,7 @@ function groupLabel(L, [t, , shown, total]) {
   const c = T.controls || {};
   if (L.show === "all") return className(t);
   const tpl = (L.show === "largest" ? c.largestLabel : c.smallestLabel) || "";
-  const part = tpl ? tpl.replace("{n}", fmt(shown)).replace("{total}", fmt(total)) : `[${L.show}Label]`;
+  const part = tpl ? tpl.replace("{n}", fmt(shown)).replace("{N}", fmt(total)) : `[${L.show}Label]`;
   return `${className(t)} · ${part}`;
 }
 
@@ -569,17 +563,7 @@ function setView(v, instant) {
 document.querySelectorAll(".tab").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
 $("optGroup").onchange = (e) => { opts.group = e.target.checked; relayout(); };
 $("optAlign").onchange = (e) => { opts.align = e.target.checked; relayout(); };
-$("optShow").onchange = (e) => { opts.show = e.target.value; $("nWrap").hidden = opts.show === "all"; relayout(); };
-let nTimer = 0;
-$("optN").oninput = (e) => {
-  clearTimeout(nTimer);
-  nTimer = setTimeout(() => {
-    const v = Math.round(Number(e.target.value));
-    if (!Number.isFinite(v) || v < 1) return;
-    opts.n = v;
-    if (opts.show !== "all") relayout();
-  }, 350);
-};
+$("optShow").onchange = (e) => { opts.show = e.target.value; relayout(); };
 $("resetView").onclick = () => { zoom = { k: 1, x: 0, y: 0 }; draw(); };
 function relayout() { layout = computeLayout(screenBox(), 12); pathCache = null; draw(); }
 
@@ -916,33 +900,69 @@ function bar(parts, total, colors) {
 function heading(value, name) {
   return value ? `<h3>${esc(value)}</h3>` : `<h3 class="ph">[${name}]</h3>`;
 }
+// Census tiles for the Stats tab: value from a county summary, display format, and
+// whether the county is the highest/lowest of the 10 (tags in config.js).
+const CENSUS_TILES = [
+  { key: "pctVacant", v: (c) => c.census && c.census.pctVacant, f: (x) => pct(x) },
+  { key: "pctMobileHome", v: (c) => c.census && c.census.pctMobileHome, f: (x) => pct(x) },
+  { key: "pctRenter", v: (c) => c.census && c.census.pctRenter, f: (x) => pct(x) },
+  { key: "medianHomeValue", v: (c) => c.census && c.census.medianHomeValue, f: (x) => "$" + fmt(x) },
+  { key: "medianIncome", v: (c) => c.census && c.census.medianIncome, f: (x) => "$" + fmt(x) },
+  { key: "valueToIncome", v: (c) => c.census && c.census.medianHomeValue && c.census.medianIncome
+      ? c.census.medianHomeValue / c.census.medianIncome : null, f: (x) => fmt(x, 1) + "×" },
+  { key: "peoplePerBuilding", v: (c) => c.census && c.census.population && c.count ? c.census.population / c.count : null, f: (x) => fmt(x, 1) },
+  { key: "unitsPerHome", v: (c) => c.census && c.census.housingUnits && c.tc && c.tc[0] ? c.census.housingUnits / c.tc[0] : null, f: (x) => fmt(x, 2) },
+  { key: "medianYearBuilt", v: (c) => c.census && c.census.medianYearBuilt, f: (x) => String(x), year: true }
+];
+
+function censusCard(s, S) {
+  const L = S.tiles || {};
+  const tiles = CENSUS_TILES.map((t) => {
+    const x = t.v(s);
+    if (x == null) return "";
+    const all = IDX.counties.map(t.v).filter((v) => v != null);
+    let tag = "";
+    if (all.length > 1 && x === Math.max(...all)) tag = t.year ? S.newest : S.highest;
+    else if (all.length > 1 && x === Math.min(...all)) tag = t.year ? S.oldest : S.lowest;
+    const label = L[t.key];
+    return `<div class="tile"><b>${esc(t.f(x))}</b>
+      <span class="${label ? "" : "ph"}">${esc(label || `[stats.tiles.${t.key}]`)}</span>
+      ${tag ? `<em>${esc(tag)}</em>` : ""}</div>`;
+  }).join("");
+  if (!tiles) return "";
+  return `<section class="card">${heading(S.census, "stats.census")}
+    <div class="tiles">${tiles}</div>
+    ${S.censusNote ? `<p class="note">${esc(S.censusNote)}</p>` : ""}</section>`;
+}
+
 function renderStats() {
   const s = summary(), S = T.stats || {};
   const cc = IDX.classes.map((c, i) => classColor(i));
   const sz = CFG.sizeColors || [];
   const rowB = esc(S.rowBuildings || "[rowBuildings]"), rowF = esc(S.rowFootprint || "[rowFootprint]");
   const cols = S.largestCols || ["", "", ""];
-  let html = `
-    <div class="block">${heading(S.byClass, "stats.byClass")}
+  const classLegend = IDX.classes.map((c, i) => s.tc[i]
+    ? `<span><i style="background:${esc(cc[i])}"></i>${esc(className(i))}</span>` : "").join("");
+  const html = `<div class="stats-grid">
+    <section class="card">${heading(S.byClass, "stats.byClass")}
       <div class="barrow"><span>${rowB}</span>${bar(s.tc, s.count, cc)}</div>
       <div class="barrow"><span>${rowF}</span>${bar(s.ta, s.foot, cc)}</div>
-    </div>
-    <div class="block">${heading(S.bySize, "stats.bySize")}
+      <div class="mini-legend">${classLegend}</div>
+    </section>
+    <section class="card">${heading(S.bySize, "stats.bySize")}
       <div class="barrow"><span>${rowB}</span>${bar(s.sc, s.count, sz)}</div>
       <div class="barrow"><span>${rowF}</span>${bar(s.sa, s.foot, sz)}</div>
-      <div class="legend">${(CFG.sizeLabels || []).map((l, i) => `<span style="display:inline-flex;gap:6px;align-items:center;color:var(--sub)"><i style="background:${esc(sz[i])}"></i>${esc(l)}</span>`).join("")}</div>
-    </div>
-    <div class="block">${heading(S.concentration, "stats.concentration")}
-      <div class="statgrid ${S.concentrationText ? "" : "ph"}">${S.concentrationText ? fillTokens(S.concentrationText, s) : "[stats.concentrationText]"}</div>
-    </div>
-    <div class="block">${heading(S.largest, "stats.largest")}
+      <div class="mini-legend">${(CFG.sizeLabels || []).map((l, i) => `<span><i style="background:${esc(sz[i])}"></i>${esc(l)}</span>`).join("")}</div>
+    </section>
+    ${censusCard(s, S)}
+    <section class="card">${heading(S.largest, "stats.largest")}
       <table class="toplist"><thead><tr>${cols.map((c, i) => `<th${i === 2 ? ' style="text-align:right"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>
       ${s.top.map(([prim, t, area]) => `<tr><td>${esc(IDX.prims[prim])}</td><td><i style="background:${esc(classColor(t))}"></i>${esc(className(t))}</td><td class="num">${fmt(area * SQFT)}</td></tr>`).join("")}
       </tbody></table>
-    </div>
-    <div class="block small">${heading(S.allCounties, "stats.allCounties")}
+    </section>
+    <section class="card wide small">${heading(S.allCounties, "stats.allCounties")}
       ${IDX.counties.map((c) => `<div class="barrow${c.slug === cur.slug ? " on" : ""}" data-slug="${esc(c.slug)}" tabindex="0" role="button"><span>${esc(c.name)}</span>${bar(c.ta, c.foot, cc)}</div>`).join("")}
-    </div>`;
+    </section></div>`;
   const el = $("stats");
   el.innerHTML = html;
   el.querySelectorAll(".small .barrow").forEach((r) => {

@@ -47,12 +47,11 @@ window.CONFIG = {
       align: "Long side horizontal",
       show: "Show",
       showAll: "All",
-      showLargest: "Largest N",
-      showSmallest: "Smallest N",
-      n: "N",
-      // Group label suffix when showing largest/smallest N; {n} and {total} are filled in
-      largestLabel: "largest {n} of {total}",
-      smallestLabel: "smallest {n} of {total}",
+      showLargest: "Largest 100",
+      showSmallest: "Smallest 100",
+      // Group label suffix for Largest/Smallest: {n} = buildings of that class, {N} = shown in total
+      largestLabel: "{n} of the largest {N}",
+      smallestLabel: "{n} of the smallest {N}",
       reset: "Reset view",
       poster: "Save poster PNG"
     },
@@ -61,10 +60,27 @@ window.CONFIG = {
     stats: {
       byClass: "",          // heading above the count vs. footprint bars
       bySize: "",           // heading above the size-bin bars
-      concentration: "",    // heading above the concentration numbers
+      census: "",           // heading above the census number tiles
       largest: "",          // heading above the top-10 table
       allCounties: "",      // heading above the all-county comparison
-      concentrationText: "",  // body under "concentration"; same {tokens} as facts
+      // Census tiles (ACS 2014–2018): the label under each number
+      tiles: {
+        pctVacant: "of homes are vacant",
+        pctMobileHome: "of homes are mobile homes",
+        pctRenter: "of households rent",
+        medianHomeValue: "median home value",
+        medianIncome: "median household income",
+        valueToIncome: "home value ÷ household income",
+        peoplePerBuilding: "people per building",
+        unitsPerHome: "homes per residential footprint",
+        medianYearBuilt: "median year built"
+      },
+      // Tag on a tile when the county is the extreme of the 10
+      highest: "Highest of the 10 counties",
+      lowest: "Lowest of the 10 counties",
+      newest: "Newest of the 10 counties",
+      oldest: "Oldest of the 10 counties",
+      censusNote: "Census: American Community Survey 2014–2018 5-year estimates.",
       largestCols: ["Type (PRIM_OCC)", "Class", "ft²"],
       rowBuildings: "Buildings",
       rowFootprint: "Footprint"
@@ -141,7 +157,7 @@ window.CONFIG = {
   defaultGroup: true,           // sorted view grouped by class
   defaultAlign: true,
   defaultShow: "all",           // sorted view: "all" | "largest" | "smallest"
-  defaultN: 500,                // N buildings per class for largest/smallest
+  defaultN: 100,                // how many buildings "Largest" / "Smallest" show (whole county)
   animationMs: 1600,
   dimAlpha: 0.12,               // opacity of classes that are switched off in the legend
   minPixelSize: 1,              // smallest on-screen size of a building (px); 0 = true size
