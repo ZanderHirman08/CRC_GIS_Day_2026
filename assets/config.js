@@ -58,11 +58,11 @@ window.CONFIG = {
 
     // Stats tab headings and notes
     stats: {
-      byClass: "",          // heading above the count vs. footprint bars
-      bySize: "",           // heading above the size-bin bars
-      census: "",           // heading above the census number tiles
-      largest: "",          // heading above the top-10 table
-      allCounties: "",      // heading above the all-county comparison
+      byClass: "Most buildings are homes, but not most of the space",
+      bySize: "A few big buildings cover a lot of ground",
+      census: "People and housing",
+      largest: "The county's 10 biggest footprints",
+      allCounties: "How the 10 CRC counties compare (footprint by type)",
       // Census tiles (ACS 2014–2018): the label under each number
       tiles: {
         pctVacant: "of homes are vacant",
@@ -142,7 +142,7 @@ window.CONFIG = {
     text: "#e8eaee",
     sub: "#c9ccd3",
     muted: "#8a8f99",
-    accent: "#e0573e",      // selected tab, picker highlight, facts numbers
+    accent: "#00e5ff",      // selected tab, picker highlight, facts numbers
     countyOutline: "#4a5060",
     hover: "#00e5ff",
     water: "#14273b",       // ocean, sounds, rivers (fill)
