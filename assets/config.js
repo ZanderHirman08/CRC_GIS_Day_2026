@@ -18,7 +18,6 @@ window.CONFIG = {
       "by building type and size. Click any building on the map to see how it ranks. Inspired by " +
       "<a href=\"https://abenrob.com/\">Adam Roberts</a>'s 30 Day Map Challenge, " +
       "<a href=\"https://abenrob.github.io/30daymap2026/day-03-polygons/#a=4&v=map\">day 3</a>.",
-    backLink: { label: "", url: "https://zanderhirman08.github.io/CRCProjects-/" },
     // Sources / credits at the bottom of the page (HTML allowed)
     footer: "<b>Sources:</b> Building footprints: USA Structures, Oak Ridge National Laboratory (ORNL) and " +
       "FEMA Geospatial Response Office (data collection 2018), via the Coastal Regional Commission. " +

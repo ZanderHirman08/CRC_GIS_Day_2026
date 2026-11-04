@@ -102,9 +102,6 @@ function applyConfig() {
   put($("footer"), T.footer, "footer", true);
   // links in config text open in a new tab
   document.querySelectorAll("#intro a, #footer a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
-  const back = T.backLink || {};
-  $("backLink").href = back.url || "#";
-  put($("backLink"), back.label ? `← ${back.label}` : "", "backLink.label");
 
   const tabs = T.tabs || {}, c = T.controls || {};
   put($("tabMap"), tabs.map, "tabs.map");
@@ -341,21 +338,28 @@ function screenBox() {
   return { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight, pad: 28 };
 }
 
+// Screen transforms for the map state (sM, mx, my) and the sorted state (sL, lx, ly).
+// During a view change, the zoom you had (zMap or zSort) is baked into its state, so
+// buildings fly from exactly where you were looking to where they land.
+const ID_ZOOM = { k: 1, x: 0, y: 0 };
+let zMap = ID_ZOOM, zSort = ID_ZOOM;
 function fit(e, box, L) {
   const sMap = Math.min((box.w - 2 * box.pad) / cur.W, (box.h - 2 * box.pad) / cur.H);
   const sLay = L ? Math.min((box.w - 2 * box.pad) / L.W, (box.h - 2 * box.pad) / L.H) : sMap;
-  const s = sMap + (sLay - sMap) * e;
+  const mx0 = box.x + (box.w - cur.W * sMap) / 2, my0 = box.y + (box.h - cur.H * sMap) / 2;
+  const lx0 = L ? box.x + (box.w - L.W * sLay) / 2 : 0, ly0 = L ? box.y + (box.h - L.H * sLay) / 2 : 0;
+  const sM = sMap * zMap.k, sL = sLay * zSort.k;
   return {
-    s,
-    mx: box.x + (box.w - cur.W * s) / 2, my: box.y + (box.h - cur.H * s) / 2,
-    lx: L ? box.x + (box.w - L.W * s) / 2 : 0, ly: L ? box.y + (box.h - L.H * s) / 2 : 0
+    s: Math.pow(sM, 1 - e) * Math.pow(sL, e),
+    sM, mx: mx0 * zMap.k + zMap.x, my: my0 * zMap.k + zMap.y,
+    sL, lx: lx0 * zSort.k + zSort.x, ly: ly0 * zSort.k + zSort.y
   };
 }
 
 function place(b, f, e, L) {
-  let th = 0, ox = f.mx + b.cx * f.s, oy = f.my + b.cy * f.s;
+  let th = 0, ox = f.mx + b.cx * f.sM, oy = f.my + b.cy * f.sM;
   if (e > 0 && L) {
-    const tx = f.lx + (b.sx - b.bcx) * f.s, ty = f.ly + (b.sy - b.bcy) * f.s;
+    const tx = f.lx + (b.sx - b.bcx) * f.sL, ty = f.ly + (b.sy - b.bcy) * f.sL;
     th = b.th * e; ox += (tx - ox) * e; oy += (ty - oy) * e;
   }
   return [ox, oy, th];
@@ -416,7 +420,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
     g.beginPath();
     for (const a of cur.outline) {
       for (let i = 0; i < a.length; i += 2) {
-        const X = f.mx + a[i] * f.s, Y = f.my + a[i + 1] * f.s;
+        const X = f.mx + a[i] * f.sM, Y = f.my + a[i + 1] * f.sM;
         i ? g.lineTo(X, Y) : g.moveTo(X, Y);
       }
       g.closePath();
@@ -425,7 +429,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
     g.setLineDash([]);
     g.globalAlpha = 1;
   }
-  if (e < 1) drawWater(g, water[cur.slug], f.mx, f.my, f.s, k, 1 - e, null);
+  if (e < 1) drawWater(g, water[cur.slug], f.mx, f.my, f.sM, k, 1 - e, null);
   paths = paths || buildPaths(f, e, L, k);
   for (let t = 0; t < paths.length; t++) {
     const a = active && !active.has(t) ? (CFG.dimAlpha ?? 0.12) : 1;
@@ -440,7 +444,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
     g.fillStyle = th.sub || "#c9ccd3";
     const fs = scaleOut && scaleOut.labelPx ? scaleOut.labelPx : 12;
     g.font = `500 ${fs / k}px ${th.font || "sans-serif"}`;
-    for (const lab of L.labels) g.fillText(groupLabel(L, lab), f.lx, f.ly + lab[1] * f.s - 4 / k);
+    for (const lab of L.labels) g.fillText(groupLabel(L, lab), f.lx, f.ly + lab[1] * f.sL - 4 / k);
     g.globalAlpha = 1;
   }
   g.restore();
@@ -518,13 +522,21 @@ new ResizeObserver(() => { if (view !== "stats") resize(); }).observe(stage);
 
 // ── views ───────────────────────────────────────────────────────
 let animReq = 0;
+// Animate between map (0) and sorted (1), starting from the current zoom.
 function animateTo(target) {
   cancelAnimationFrame(animReq);
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { anim = target; draw(); return; }
+  // the view you are leaving keeps its zoom; the one you are going to is shown in full
+  if (target === 1) { zMap = { ...zoom }; zSort = ID_ZOOM; } else { zSort = { ...zoom }; zMap = ID_ZOOM; }
+  zoom = { ...ID_ZOOM };
+  pathCache = null;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    anim = target; zMap = zSort = ID_ZOOM; draw(); return;
+  }
   const from = anim, t0 = performance.now(), dur = CFG.animationMs || 1600;
   const step = (now) => {
     const d = Math.min(1, (now - t0) / dur);
     anim = from + (target - from) * d;
+    if (d >= 1) { zMap = zSort = ID_ZOOM; pathCache = null; }
     draw();
     if (d < 1) animReq = requestAnimationFrame(step);
   };
@@ -543,11 +555,15 @@ function setView(v, instant) {
   writeHash();
   if (!cur) return;
   if (v === "stats") { renderStats(); return; }
-  zoom = { k: 1, x: 0, y: 0 };
-  resize();
   const target = v === "sorted" ? 1 : 0;
-  if (instant || prev === "stats") { anim = target; draw(); }
-  else animateTo(target);
+  if (instant || prev === "stats") {
+    zoom = { k: 1, x: 0, y: 0 };
+    resize();
+    anim = target; draw();
+  } else {
+    resize();             // keeps the current zoom; animateTo eases it back out
+    animateTo(target);
+  }
 }
 
 document.querySelectorAll(".tab").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
