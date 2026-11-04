@@ -76,17 +76,18 @@ window.CONFIG = {
   // One color per OCC_CLS class, from the APA LBCS color scheme (Structure/Function
   // dimensions). Where LBCS gives two classes the same hue (Government/Education blue,
   // Industrial/Assembly purple) they are split by lightness, and blues/purples are
-  // lightened enough to show on the dark background. Every pair checked for
+  // lightened enough to show on the dark background. Residential is a muted LBCS yellow;
+  // Utility uses LBCS gray52. Every pair checked for
   // normal-vision and colorblind separation; re-check if you change any of them.
   classColors: {
-    "Residential":      "#ffff00",
+    "Residential":      "#c9b458",
     "Commercial":       "#ff0000",
     "Industrial":       "#980be7",
     "Government":       "#659cff",
     "Education":        "#345cbb",
     "Agriculture":      "#228b22",
-    "Assembly":         "#9867bd",
-    "Utility and Misc": "#bebebe",
+    "Assembly":         "#d3b3fe",
+    "Utility and Misc": "#868686",
     "Unclassified":     "#ffffff"
   },
 
@@ -94,7 +95,7 @@ window.CONFIG = {
   classLabels: {},
 
   // Colors for the size bins in the Stats tab (smallest → largest)
-  sizeColors: ["#184f95", "#256abf", "#3987e5", "#6da7ec", "#9ec5f4"],
+  sizeColors: ["#0e5a5a", "#157a7a", "#1f9aa6", "#5cc0c8", "#a3dfe3"],
   sizeLabels: ["under 500 ft²", "500–2,000 ft²", "2,000–10,000 ft²", "10,000–100,000 ft²", "over 100,000 ft²"],
 
   // Page colors (also set as CSS variables)
