@@ -123,7 +123,7 @@ function applyConfig() {
   $("lblShowLargest").textContent = c.showLargest || "[showLargest]";
   $("lblShowSmallest").textContent = c.showSmallest || "[showSmallest]";
   put($("resetView"), c.reset, "controls.reset");
-  put($("savePoster"), c.poster, "controls.poster");
+  put($("share"), c.share, "controls.share");
 
   $("optGroup").checked = opts.group;
   $("optAlign").checked = opts.align;
@@ -984,76 +984,136 @@ function renderStats() {
 }
 
 // ── poster PNG ──────────────────────────────────────────────────
-$("savePoster").onclick = async () => {
+// Image of the current county and view (map or sorted) with title, legend and credits
+let logoImg = null;
+function loadLogo() {
+  if (logoImg || !(CFG.logo && CFG.logo.src)) return Promise.resolve(logoImg);
+  return new Promise((res) => {
+    const im = new Image();
+    im.onload = () => { logoImg = im; res(im); };
+    im.onerror = () => res(null);
+    im.src = CFG.logo.src;
+  });
+}
+
+async function makeImage(W, H) {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  const th = CFG.theme || {}, font = th.font || "sans-serif", P = T.poster || {};
+  const u = W / 1080;                      // type scale relative to a 1080 px wide layout
+  const fill = (t) => (t || "").replace(/\{county\}/g, cur.name);
+  g.fillStyle = th.mapBg || th.bg || "#0f1115";
+  g.fillRect(0, 0, W, H);
+
+  const box = { x: 60 * u, y: 230 * u, w: W - 120 * u, h: H - 230 * u - 190 * u, pad: 0 };
+  const e = view === "sorted" ? 1 : 0;
+  const labelPx = 15 * u;
+  const L = e ? computeLayout(box, labelPx) : null;
+  const out = renderScene(g, box, e, L, 1, 0, 0, { labelPx }, null);
+
+  // logo top right, on a light badge so its navy lettering shows on the navy background
+  const logo = await loadLogo();
+  let logoW = 0;
+  if (logo) {
+    const lh = 120 * u, lw = lh * (logo.width / logo.height), pad = 12 * u;
+    const x0 = W - 60 * u - lw - 2 * pad, y0 = 40 * u;
+    g.fillStyle = th.bg || "#E4DEBC";
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x0, y0, lw + 2 * pad, lh + 2 * pad, 14 * u); else g.rect(x0, y0, lw + 2 * pad, lh + 2 * pad);
+    g.fill();
+    g.drawImage(logo, x0 + pad, y0 + pad, lw, lh);
+    logoW = lw + 2 * pad + 30 * u;
+  }
+
+  g.fillStyle = th.mapText || th.text || "#fff";
+  g.textBaseline = "alphabetic";
+  g.font = `700 ${40 * u}px ${font}`;
+  g.fillText(fill(P.title || T.title), 60 * u, 100 * u, W - 120 * u - logoW);
+  g.fillStyle = th.mapSub || th.sub || "#ccc";
+  g.font = `400 ${22 * u}px ${font}`;
+  g.fillText(fill(P.subtitle), 60 * u, 142 * u, W - 120 * u - logoW);
+
+  // legend
+  let x = 60 * u, y = H - 140 * u;
+  g.font = `400 ${15 * u}px ${font}`;
+  const present = IDX.classes.map((_, i) => i).filter((i) => summary().tc[i] && (!active || active.has(i)));
+  for (const t of present) {
+    const name = className(t), wName = g.measureText(name).width;
+    if (x + 18 * u + wName > W - 240 * u) { x = 60 * u; y += 26 * u; }
+    g.fillStyle = classColor(t);
+    g.fillRect(x, y - 12 * u, 12 * u, 12 * u);
+    g.fillStyle = th.mapSub || th.sub || "#ccc";
+    g.fillText(name, x + 18 * u, y);
+    x += 18 * u + wName + 22 * u;
+  }
+  // scale bar
+  const sc = niceScale(out.f.s, 100 * u);
+  g.strokeStyle = g.fillStyle = th.mapMuted || th.muted || "#888";
+  g.lineWidth = 2 * u;
+  g.beginPath(); g.moveTo(W - 60 * u - sc.px, H - 146 * u); g.lineTo(W - 60 * u, H - 146 * u); g.stroke();
+  g.textAlign = "right";
+  g.fillText(sc.label, W - 60 * u, H - 154 * u);
+  g.textAlign = "left";
+  // credits, wrapped to the page width
+  g.font = `400 ${14 * u}px ${font}`;
+  const words = fill(P.credits).split(/\s+/).filter(Boolean);
+  let line = "", ly = H - 72 * u;
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (g.measureText(test).width > W - 120 * u && line) { g.fillText(line, 60 * u, ly); line = w; ly += 20 * u; }
+    else line = test;
+  }
+  if (line) g.fillText(line, 60 * u, ly);
+
+  // restore the on-screen layout (the image pass overwrote slot positions)
+  layout = computeLayout(screenBox(), 12);
+  pathCache = null;
+  draw();
+  const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+  if (!blob) throw new Error("toBlob failed");
+  return blob;
+}
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 3500);
+}
+
+// Share: the device's share sheet with the image and a link to this county and view.
+// Where sharing files isn't supported: copy the link and save the image.
+$("share").onclick = async () => {
   if (!cur || view === "stats") return;
-  const btn = $("savePoster");
+  const btn = $("share"), c = T.controls || {};
   btn.disabled = true;
   await new Promise((r) => setTimeout(r, 30));
   try {
-    const { width: W, height: H } = CFG.posterSize || { width: 7200, height: 10800 };
-    const c = document.createElement("canvas");
-    c.width = W; c.height = H;
-    const g = c.getContext("2d");
-    const th = CFG.theme || {}, font = th.font || "sans-serif", P = T.poster || {};
-    const u = W / 1080;                      // type scale relative to a 1080 px wide layout
-    g.fillStyle = th.mapBg || th.bg || "#0f1115";
-    g.fillRect(0, 0, W, H);
-
-    const box = { x: 60 * u, y: 220 * u, w: W - 120 * u, h: H - 220 * u - 170 * u, pad: 0 };
-    const e = view === "sorted" ? 1 : 0;
-    const labelPx = 15 * u;
-    const L = e ? computeLayout(box, labelPx) : null;
-    const out = renderScene(g, box, e, L, 1, 0, 0, { labelPx }, null);
-
-    g.fillStyle = th.mapText || th.text || "#fff";
-    g.textBaseline = "alphabetic";
-    g.font = `700 ${40 * u}px ${font}`;
-    g.fillText(P.title || T.title || "", 60 * u, 90 * u);
-    g.fillStyle = th.mapSub || th.sub || "#ccc";
-    g.font = `400 ${24 * u}px ${font}`;
-    g.fillText((P.subtitle || "").replace("{county}", cur.name), 60 * u, 132 * u);
-
-    // legend
-    let x = 60 * u, y = H - 120 * u;
-    g.font = `400 ${15 * u}px ${font}`;
-    const present = IDX.classes.map((_, i) => i).filter((i) => summary().tc[i] && (!active || active.has(i)));
-    for (const t of present) {
-      const name = className(t), wName = g.measureText(name).width;
-      if (x + 18 * u + wName > W - 240 * u) { x = 60 * u; y += 26 * u; }
-      g.fillStyle = classColor(t);
-      g.fillRect(x, y - 12 * u, 12 * u, 12 * u);
-      g.fillStyle = th.mapSub || th.sub || "#ccc";
-      g.fillText(name, x + 18 * u, y);
-      x += 18 * u + wName + 22 * u;
+    const { width: W, height: H } = CFG.shareSize || { width: 1080, height: 1620 };
+    const blob = await makeImage(W, H);
+    const file = new File([blob], `${cur.slug}-${view}.png`, { type: "image/png" });
+    const url = location.href;
+    const title = ((T.poster || {}).title || T.title || "").replace(/\{county\}/g, cur.name);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title, text: title, url }); }
+      catch (err) { if (err.name !== "AbortError") throw err; }
+      return;
     }
-    // scale bar
-    const sc = niceScale(out.f.s, 100 * u);
-    g.strokeStyle = g.fillStyle = th.mapMuted || th.muted || "#888";
-    g.lineWidth = 2 * u;
-    g.beginPath(); g.moveTo(W - 60 * u - sc.px, H - 126 * u); g.lineTo(W - 60 * u, H - 126 * u); g.stroke();
-    g.textAlign = "right";
-    g.fillText(sc.label, W - 60 * u, H - 134 * u);
-    g.textAlign = "left";
-    g.font = `400 ${14 * u}px ${font}`;
-    g.fillText(P.credits || "", 60 * u, H - 50 * u);
-
-    // restore the on-screen layout (the poster pass overwrote slot positions)
-    layout = computeLayout(screenBox(), 12);
-    pathCache = null;
-    draw();
-
-    const blob = await new Promise((r) => c.toBlob(r, "image/png"));
-    if (!blob) throw new Error("toBlob failed");
+    let copied = false;
+    try { await navigator.clipboard.writeText(url); copied = true; } catch (err) { /* clipboard blocked */ }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${cur.slug}-${view}.png`;
+    a.download = file.name;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast(copied ? (c.shareCopied || "Link copied and image saved") : (c.shareSaved || "Image saved"));
   } catch (err) {
     console.error(err);
-    alert("The poster could not be created. Try a smaller posterSize in config.js.");
+    toast(c.shareFailed || "Sharing didn't work in this browser.");
   } finally {
     btn.disabled = false;
   }

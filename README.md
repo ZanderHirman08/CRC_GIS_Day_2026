@@ -8,7 +8,7 @@ colored by `OCC_CLS`.
 ```
 index.html               page
 assets/config.js         all text, colors and defaults (edit this)
-assets/app.js            drawing, sorting, stats, poster export
+assets/app.js            drawing, sorting, stats, share image
 assets/style.css         layout
 scripts/prep_buildings_arcpy.py  builds data/ from the footprints (ArcGIS Pro)
 data/                    generated: index.json, ranks.json + counties/<slug>.json

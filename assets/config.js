@@ -53,7 +53,10 @@ window.CONFIG = {
       largestLabel: "{n} of the largest {N}",
       smallestLabel: "{n} of the smallest {N}",
       reset: "Reset view",
-      poster: "Save poster PNG"
+      share: "Share",
+      shareCopied: "Link copied and image saved",
+      shareSaved: "Image saved",
+      shareFailed: "Sharing didn't work in this browser."
     },
 
     // Stats tab headings and notes
@@ -102,13 +105,13 @@ window.CONFIG = {
       hint: "Click a building to see where it is."
     },
 
-    // Poster PNG
+    // Share image (current county and view); {county} is replaced with the county name
     poster: {
-      title: "",            // defaults to text.title if empty
-      subtitle: "",         // shown under the title; {county} is replaced with the county name
-      credits: ""           // small print at the bottom
-    }
-  },
+      title: "Every Building in {county} County",
+      subtitle: "{county} County, Georgia · every building, at the same scale",
+      credits: "Data: USA Structures (ORNL/FEMA, 2018) via CRC · TIGER/Line 2026 water. " +
+        "Map: Zander Hirman, Coastal Regional Commission · GIS Day 2026. Inspired by Adam Roberts."
+    }  },
 
   // ── Colors ─────────────────────────────────────────────────
   // One color per OCC_CLS class, based on the APA LBCS color scheme: muted yellow
@@ -172,7 +175,6 @@ window.CONFIG = {
   animationMs: 1600,
   dimAlpha: 0.12,               // opacity of classes that are switched off in the legend
   minPixelSize: 1,              // smallest on-screen size of a building (px); 0 = true size
-
-  // Poster export size in pixels (24 × 36 in at 300 dpi = 7200 × 10800)
-  posterSize: { width: 7200, height: 10800 }
+  // Share image size in pixels (portrait, social-media friendly)
+  shareSize: { width: 1080, height: 1620 }
 };
