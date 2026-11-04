@@ -73,24 +73,25 @@ window.CONFIG = {
   },
 
   // ── Colors ─────────────────────────────────────────────────
-  // One color per OCC_CLS class, in this order. Replace the placeholder gray.
+  // One color per OCC_CLS class. Checked for colorblind and normal-vision separation
+  // (every pair) on the dark background; re-check if you change any of them.
   classColors: {
-    "Residential":      "#888888",
-    "Commercial":       "#888888",
-    "Industrial":       "#888888",
-    "Government":       "#888888",
-    "Education":        "#888888",
-    "Agriculture":      "#888888",
-    "Assembly":         "#888888",
-    "Utility and Misc": "#888888",
-    "Unclassified":     "#888888"
+    "Residential":      "#4f8fb8",
+    "Commercial":       "#c98500",
+    "Industrial":       "#b04128",
+    "Government":       "#f0f0f0",
+    "Education":        "#e74a98",
+    "Agriculture":      "#07c480",
+    "Assembly":         "#b1a0ed",
+    "Utility and Misc": "#c5c536",
+    "Unclassified":     "#636363"
   },
 
   // Display names for the classes (leave as-is or rename)
   classLabels: {},
 
   // Colors for the size bins in the Stats tab (smallest → largest)
-  sizeColors: ["#888888", "#888888", "#888888", "#888888", "#888888"],
+  sizeColors: ["#184f95", "#256abf", "#3987e5", "#6da7ec", "#9ec5f4"],
   sizeLabels: ["under 500 ft²", "500–2,000 ft²", "2,000–10,000 ft²", "10,000–100,000 ft²", "over 100,000 ft²"],
 
   // Page colors (also set as CSS variables)
@@ -101,10 +102,10 @@ window.CONFIG = {
     text: "#e8eaee",
     sub: "#c9ccd3",
     muted: "#8a8f99",
-    accent: "#888888",      // selected tab, picker highlight, facts numbers
+    accent: "#e0573e",      // selected tab, picker highlight, facts numbers
     countyOutline: "#4a5060",
-    hover: "#ffffff",
-    selected: "#ffffff",    // outline of the clicked building
+    hover: "#e0573e",
+    selected: "#e0573e",    // outline of the clicked building
     font: "system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
 

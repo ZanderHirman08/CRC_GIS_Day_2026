@@ -731,7 +731,10 @@ addEventListener("keydown", (e) => { if (e.key === "Escape" && selected >= 0) cl
 function bar(parts, total, colors) {
   return `<div class="bar">${parts.map((v, i) => {
     const p = total ? (v / total) * 100 : 0;
-    return p > 0 ? `<div style="width:${p}%;background:${esc(colors[i])}" title="${p.toFixed(1)}%">${p >= 7 ? Math.round(p) + "%" : ""}</div>` : "";
+    // dark text on light segments, light text on dark ones
+    const n = parseInt(String(colors[i]).slice(1), 16), lumi = ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255;
+    const ink = lumi > 0.55 ? "#0f1115" : "#f0f0f0";
+    return p > 0 ? `<div style="width:${p}%;background:${esc(colors[i])};color:${ink}" title="${p.toFixed(1)}%">${p >= 7 ? Math.round(p) + "%" : ""}</div>` : "";
   }).join("")}</div>`;
 }
 function heading(value, name) {
