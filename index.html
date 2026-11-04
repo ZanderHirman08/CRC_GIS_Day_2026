@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="page-head">
+  <a class="back" id="backLink" href="#"></a>
+  <h1 id="title"></h1>
+  <p class="subtitle" id="subtitle"></p>
+  <p class="intro" id="intro"></p>
+</header>
+
+<section class="top">
+  <svg id="picker" role="group" aria-label="County picker"></svg>
+  <div class="top-side">
+    <div class="sel">
+      <button type="button" id="prev" aria-label="Previous county">&#8592;</button>
+      <select id="countySelect" aria-label="County"></select>
+      <button type="button" id="next" aria-label="Next county">&#8594;</button>
+    </div>
+    <div id="countyName" class="county-name"></div>
+    <div id="facts" class="facts"></div>
+  </div>
+</section>
+
+<div class="tabs" role="tablist">
+  <button type="button" class="tab" role="tab" data-v="map" id="tabMap"></button>
+  <button type="button" class="tab" role="tab" data-v="sorted" id="tabSorted"></button>
+  <button type="button" class="tab" role="tab" data-v="stats" id="tabStats"></button>
+  <div class="opts" id="opts">
+    <label class="sorted-only"><input type="checkbox" id="optGroup"> <span id="lblGroup"></span></label>
+    <label class="sorted-only"><input type="checkbox" id="optAlign"> <span id="lblAlign"></span></label>
+    <label class="sorted-only"><span id="lblSort"></span>
+      <select id="optSort">
+        <option value="area" id="lblSortArea"></option>
+        <option value="height" id="lblSortHeight"></option>
+      </select>
+    </label>
+    <button type="button" id="resetView" class="canvas-only"></button>
+    <button type="button" id="savePoster" class="canvas-only"></button>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="stats"></div>
+  <div id="tip" role="status"></div>
+  <div id="scale"><i></i><span></span></div>
+  <div id="message"></div>
+</div>
+<div class="legend" id="legend"></div>
+
+<footer class="page-foot" id="footer"></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
