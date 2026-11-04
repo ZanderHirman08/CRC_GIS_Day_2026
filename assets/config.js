@@ -19,7 +19,7 @@ window.CONFIG = {
     // Line under the county name. HTML allowed. Tokens filled from the data:
     //   {count} buildings   {footprint} footprint (sq mi)   {land} county land (sq mi)
     //   {share} footprint as % of land   {median} median footprint (ft²)
-    //   {medianHeight} median height (ft)   {top1} % of footprint in the largest 1%
+    //   {top1} % of footprint in the largest 1%
     //   {smallHalf} % of footprint in the smallest half
     // e.g. "<b>{count}</b> buildings · {footprint} sq mi of footprint"
     facts: "",
@@ -29,9 +29,6 @@ window.CONFIG = {
     controls: {
       group: "Group by class",
       align: "Long side horizontal",
-      sortBy: "Sort by",
-      sortArea: "Footprint size",
-      sortHeight: "Height",
       reset: "Reset view",
       poster: "Save poster PNG"
     },
@@ -44,7 +41,7 @@ window.CONFIG = {
       largest: "",          // heading above the top-10 table
       allCounties: "",      // heading above the all-county comparison
       concentrationText: "",  // body under "concentration"; same {tokens} as facts
-      largestCols: ["Type (PRIM_OCC)", "Class", "ft²", "City"],
+      largestCols: ["Type (PRIM_OCC)", "Class", "ft²"],
       rowBuildings: "Buildings",
       rowFootprint: "Footprint"
     },
@@ -97,7 +94,6 @@ window.CONFIG = {
   defaultView: "map",           // "map" | "sorted" | "stats"
   defaultGroup: true,           // sorted view grouped by class
   defaultAlign: true,
-  defaultSort: "area",          // "area" | "height"
   animationMs: 1600,
   dimAlpha: 0.12,               // opacity of classes that are switched off in the legend
 

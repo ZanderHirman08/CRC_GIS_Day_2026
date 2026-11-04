@@ -7,7 +7,7 @@
 const CFG = window.CONFIG || {};
 const T = CFG.text || {};
 const SQFT = 10.7639;      // ft² per m²
-const FT = 3.28084;        // ft per m
+const FT = 3.28084;        // ft per m (scale bar)
 const SQMI = 2589988.11;   // m² per sq mi
 
 const $ = (id) => document.getElementById(id);
@@ -25,8 +25,7 @@ let zoom = { k: 1, x: 0, y: 0 };
 let pathCache = null;
 const opts = {
   group: CFG.defaultGroup !== false,
-  align: CFG.defaultAlign !== false,
-  sort: CFG.defaultSort || "area"
+  align: CFG.defaultAlign !== false
 };
 
 // ── helpers ─────────────────────────────────────────────────────
@@ -55,7 +54,6 @@ function fillTokens(tpl, s) {
     land: fmt(s.land / SQMI, 0),
     share: pct(s.foot / s.land),
     median: fmt(s.median * SQFT),
-    medianHeight: s.medh == null ? "–" : fmt(s.medh * FT),
     top1: pct(s.top1),
     smallHalf: pct(s.smallHalf)
   };
@@ -85,15 +83,11 @@ function applyConfig() {
   put($("tabStats"), tabs.stats, "tabs.stats");
   put($("lblGroup"), c.group, "controls.group");
   put($("lblAlign"), c.align, "controls.align");
-  put($("lblSort"), c.sortBy, "controls.sortBy");
-  $("lblSortArea").textContent = c.sortArea || "[sortArea]";
-  $("lblSortHeight").textContent = c.sortHeight || "[sortHeight]";
   put($("resetView"), c.reset, "controls.reset");
   put($("savePoster"), c.poster, "controls.poster");
 
   $("optGroup").checked = opts.group;
   $("optAlign").checked = opts.align;
-  $("optSort").value = opts.sort;
 }
 
 function message(text) {
@@ -118,7 +112,7 @@ async function start() {
     if (!r.ok) throw new Error(r.status);
     IDX = await r.json();
   } catch (e) {
-    message("data/index.json was not found. Run scripts/prep_buildings.py to create the data files.");
+    message("data/index.json was not found. Run scripts/prep_buildings_arcpy.py in ArcGIS Pro to create the data files.");
     return;
   }
   buildPicker();
@@ -163,7 +157,7 @@ const summary = () => IDX.counties.find((c) => c.slug === cur.slug);
 function prep(d) {
   // World frame: metres, y down. Vertices relative to each building's centroid.
   const H = d.h, B = [];
-  for (const [t, prim, area, h, ang, cx, cy, city, rings] of d.b) {
+  for (const [t, prim, area, ang, cx, cy, rings] of d.b) {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     const rs = rings.map((r) => {
       const a = new Float32Array(r.length);
@@ -174,7 +168,7 @@ function prep(d) {
       }
       return a;
     });
-    B.push({ t, prim, area, h, ang: -ang, cx: cx / 10, cy: H - cy / 10, city, rs, x0, y0, x1, y1,
+    B.push({ t, prim, area, ang: -ang, cx: cx / 10, cy: H - cy / 10, rs, x0, y0, x1, y1,
       rad: Math.max(x1 - x0, y1 - y0) });
   }
   const outline = d.outline.map((r) => {
@@ -182,7 +176,7 @@ function prep(d) {
     for (let i = 0; i < r.length; i += 2) a.push(r[i], H - r[i + 1]);
     return a;
   });
-  return { slug: d.slug, name: d.name, W: d.w, H, B, outline, cities: d.cities || [] };
+  return { slug: d.slug, name: d.name, W: d.w, H, B, outline };
 }
 
 // ── picker + legend ─────────────────────────────────────────────
@@ -252,11 +246,8 @@ function layoutPass(labH, aspect, widthFactor = 1) {
     if (opts.align && y1 - y0 > x1 - x0) { th2 = th + Math.PI / 2; [x0, x1, y0, y1] = [-y1, -y0, x0, x1]; }
     b.th = th2; b.bw = x1 - x0; b.bh = y1 - y0; b.bcx = (x0 + x1) / 2; b.bcy = (y0 + y1) / 2;
   }
-  const key = opts.sort === "height"
-    ? (b) => (b.h == null ? -1 : b.h) * 1e9 + b.area
-    : (b) => b.area;
   const order = B.map((b, i) => i);
-  order.sort((i, j) => (opts.group ? B[i].t - B[j].t : 0) || key(B[j]) - key(B[i]));
+  order.sort((i, j) => (opts.group ? B[i].t - B[j].t : 0) || B[j].area - B[i].area);
 
   const gap = Math.max(0.5, Math.sqrt(cur.B.reduce((s, b) => s + b.area, 0) / cur.B.length) * 0.08);
   let tot = 0;
@@ -484,7 +475,6 @@ function setView(v, instant) {
 document.querySelectorAll(".tab").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
 $("optGroup").onchange = (e) => { opts.group = e.target.checked; relayout(); };
 $("optAlign").onchange = (e) => { opts.align = e.target.checked; relayout(); };
-$("optSort").onchange = (e) => { opts.sort = e.target.value; relayout(); };
 $("resetView").onclick = () => { zoom = { k: 1, x: 0, y: 0 }; draw(); };
 function relayout() { layout = computeLayout(screenBox(), 12); pathCache = null; draw(); }
 
@@ -544,10 +534,7 @@ function hoverAt(ev) {
     const tip = $("tip");
     if (best < 0) { tip.style.display = "none"; return; }
     const b = cur.B[best];
-    const parts = [`<strong>${esc(IDX.prims[b.prim])}</strong>`,
-      `${esc(className(b.t))} · ${fmt(b.area * SQFT)} ft²` + (b.h != null ? ` · ${fmt(b.h * FT)} ft tall` : "")];
-    if (b.city >= 0 && cur.cities[b.city]) parts.push(esc(cur.cities[b.city]));
-    tip.innerHTML = parts.join("<br>");
+    tip.innerHTML = `<strong>${esc(IDX.prims[b.prim])}</strong><br>${esc(className(b.t))} · ${fmt(b.area * SQFT)} ft²`;
     tip.style.display = "block";
     tip.style.left = `${Math.min(sx + 12, r.width - tip.offsetWidth - 4)}px`;
     tip.style.top = `${Math.min(sy + 12, r.height - tip.offsetHeight - 4)}px`;
@@ -569,7 +556,7 @@ function renderStats() {
   const cc = IDX.classes.map((c, i) => classColor(i));
   const sz = CFG.sizeColors || [];
   const rowB = esc(S.rowBuildings || "[rowBuildings]"), rowF = esc(S.rowFootprint || "[rowFootprint]");
-  const cols = S.largestCols || ["", "", "", ""];
+  const cols = S.largestCols || ["", "", ""];
   let html = `
     <div class="block">${heading(S.byClass, "stats.byClass")}
       <div class="barrow"><span>${rowB}</span>${bar(s.tc, s.count, cc)}</div>
@@ -585,7 +572,7 @@ function renderStats() {
     </div>
     <div class="block">${heading(S.largest, "stats.largest")}
       <table class="toplist"><thead><tr>${cols.map((c, i) => `<th${i === 2 ? ' style="text-align:right"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>
-      ${s.top.map(([prim, t, area, city]) => `<tr><td>${esc(IDX.prims[prim])}</td><td><i style="background:${esc(classColor(t))}"></i>${esc(className(t))}</td><td class="num">${fmt(area * SQFT)}</td><td>${esc(city)}</td></tr>`).join("")}
+      ${s.top.map(([prim, t, area]) => `<tr><td>${esc(IDX.prims[prim])}</td><td><i style="background:${esc(classColor(t))}"></i>${esc(className(t))}</td><td class="num">${fmt(area * SQFT)}</td></tr>`).join("")}
       </tbody></table>
     </div>
     <div class="block small">${heading(S.allCounties, "stats.allCounties")}

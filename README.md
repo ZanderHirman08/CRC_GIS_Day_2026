@@ -10,26 +10,24 @@ index.html               page
 assets/config.js         all text, colors and defaults (edit this)
 assets/app.js            drawing, sorting, stats, poster export
 assets/style.css         layout
-scripts/prep_buildings.py  builds data/ from the footprints
+scripts/prep_buildings_arcpy.py  builds data/ from the footprints (ArcGIS Pro)
 data/                    generated: index.json + counties/<slug>.json
 ```
 
-## Build the data
+## Build the data (ArcGIS Pro)
 
-Needs Python 3.9+ with `geopandas` (>= 0.14) and `shapely` (>= 2):
+`scripts/prep_buildings_arcpy.py` runs in ArcGIS Pro's own Python; nothing to install.
 
-```sh
-pip install geopandas pyogrio
-python scripts/prep_buildings.py --buildings path/to/structures.gdb --layer Structures \
-    --counties path/to/counties.shp --county-field NAME
-```
+1. Open the script and fill in the SETTINGS block: `GDB` (your file geodatabase) and
+   `OUT_FOLDER` (this repo's `data` folder). Layer and field names default to
+   `CRC_County_Boundary` (`NAME`, `ALAND`) and `CRC_*_footprints` (`OCC_CLS`, `PRIM_OCC`, `SQMETERS`).
+2. In Pro: Analysis > Python > Python Window (or a Notebook), then run
+   `exec(open(r"C:\path\to\CRC_GIS_Day_2026\scripts\prep_buildings_arcpy.py").read())`
+3. Commit and push the `data` folder.
 
-- Repeat `--buildings` for one file per county, or read every matching layer from one geodatabase:
-  `--buildings CRC.gdb --layer-pattern "CRC_*_footprints" --counties CRC.gdb --counties-layer CRC_Counties`
-- Field names default to `OCC_CLS`, `PRIM_OCC`, `HEIGHT` (metres), `PROP_CITY`; change them with
-  `--class-field`, `--prim-field`, `--height-field`, `--city-field` (`''` skips a field).
-- `--only` picks the counties (default: the 10 CRC counties). `--min-area 15` drops footprints under 15 m².
-- The script prints any `OCC_CLS` values it could not match; those go to "Unclassified".
+Each county layer is processed on its own and written to `data/counties/<county>.json`;
+the county comes from the layer name. `data/index.json` holds the per-county summaries.
+The script prints any `OCC_CLS` values it couldn't match ("Unclassified").
 
 ## Preview
 
