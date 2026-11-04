@@ -24,7 +24,8 @@ python scripts/prep_buildings.py --buildings path/to/structures.gdb --layer Stru
     --counties path/to/counties.shp --county-field NAME
 ```
 
-- Repeat `--buildings` for one file per county.
+- Repeat `--buildings` for one file per county, or read every matching layer from one geodatabase:
+  `--buildings CRC.gdb --layer-pattern "CRC_*_footprints" --counties CRC.gdb --counties-layer CRC_Counties`
 - Field names default to `OCC_CLS`, `PRIM_OCC`, `HEIGHT` (metres), `PROP_CITY`; change them with
   `--class-field`, `--prim-field`, `--height-field`, `--city-field` (`''` skips a field).
 - `--only` picks the counties (default: the 10 CRC counties). `--min-area 15` drops footprints under 15 m².

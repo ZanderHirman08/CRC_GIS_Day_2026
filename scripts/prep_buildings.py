@@ -26,6 +26,12 @@ Usage (any Python 3.9+ with geopandas >= 0.14 and shapely >= 2):
 
   Several building files (one per county) are fine: repeat --buildings.
 
+  One geodatabase with one footprint layer per county (e.g. CRC_Camden_footprints):
+
+  python scripts/prep_buildings.py \
+      --buildings "C:/GIS/CRC/CRC.gdb" --layer-pattern "CRC_*_footprints" \
+      --counties  "C:/GIS/CRC/CRC.gdb" --counties-layer CRC_Counties --county-field NAME
+
 Install, if needed:  pip install geopandas pyogrio
 (In ArcGIS Pro: clone the default environment in Package Manager and add geopandas.)
 """
@@ -58,7 +64,11 @@ def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--buildings", action="append", required=True,
                    help="Building footprints (gdb, gpkg, shp, geojson). Repeat for several files.")
-    p.add_argument("--layer", default=None, help="Layer name inside a gdb/gpkg")
+    p.add_argument("--layer", action="append", default=None,
+                   help="Layer name inside a gdb/gpkg. Repeat to read several layers.")
+    p.add_argument("--layer-pattern", default=None,
+                   help="Read every layer whose name matches this pattern, e.g. 'CRC_*_footprints' "
+                        "(case-insensitive, * = anything)")
     p.add_argument("--counties", required=True, help="County boundaries")
     p.add_argument("--counties-layer", default=None)
     p.add_argument("--county-field", default="NAME", help="County name field (default NAME)")
@@ -146,9 +156,20 @@ def main():
     # ── buildings ──
     parts = []
     for path in a.buildings:
-        g = gpd.read_file(path, layer=a.layer)
-        print(f"read {len(g):,} features from {path}")
-        parts.append(g.to_crs(CRS))
+        layers = [None]
+        if a.layer_pattern:
+            import fnmatch
+            import pyogrio
+            names = [str(n) for n in pyogrio.list_layers(path)[:, 0]]
+            layers = [n for n in names if fnmatch.fnmatch(n.lower(), a.layer_pattern.lower())]
+            if not layers:
+                sys.exit(f"No layers in {path} match '{a.layer_pattern}'. Layers: {names}")
+        elif a.layer:
+            layers = a.layer
+        for lyr in layers:
+            g = gpd.read_file(path, layer=lyr)
+            print(f"read {len(g):,} features from {path}" + (f" / {lyr}" if lyr else ""))
+            parts.append(g.to_crs(CRS))
     b = pd.concat(parts, ignore_index=True)
     b = gpd.GeoDataFrame(b, geometry="geometry", crs=CRS)
 
