@@ -1,8 +1,9 @@
 """
 Add ACS county numbers to data/index.json for the facts line under the county name.
 
-Put the data.census.gov CSV downloads (the "...-Data.csv" files) in the repo's census/
-folder and run, from the repo folder (plain Python 3, nothing to install):
+Put the data.census.gov CSV downloads in census/ or data/Census/ (either the
+"table view" download or the "...-Data.csv" files) and run, from the repo folder
+(plain Python 3, nothing to install):
 
     python scripts/add_census.py
 
@@ -43,6 +44,25 @@ def number(v):
         return None     # e.g. "-", "(X)", "*****"
 
 
+def read_table_view(path, rows, values):
+    """data.census.gov 'table view' download: one row per variable, one column per county.
+    The table ID comes from the file name (e.g. ACSDT5Y2018.B25024-....csv); row 1 is
+    variable _001 (the total), row 2 is _002, and so on."""
+    m = re.search(r"\b([BC]\d{5}[A-Z]?)\b", os.path.basename(path))
+    if not m:
+        print(f"  skipped {os.path.basename(path)}: no table ID in the file name")
+        return 0
+    table = m.group(1)
+    head = rows[0]
+    cols = [(i, county_slug(h.split("!!")[0])) for i, h in enumerate(head) if h.endswith("!!Estimate")]
+    for r, row in enumerate(rows[1:], start=1):
+        var = f"{table}_{r:03d}E"
+        for i, slug in cols:
+            if i < len(row):
+                values.setdefault(slug, {})[var] = number(row[i])
+    return len(cols)
+
+
 def read_values(folder):
     """{slug: {"B01003_001E": 12345.0, ...}} from every census CSV in the folder."""
     values = {}
@@ -50,6 +70,10 @@ def read_values(folder):
     for path in files:
         with open(path, newline="", encoding="utf-8-sig") as f:
             rows = list(csv.reader(f))
+        if rows and rows[0] and rows[0][0].strip().lower().startswith("label"):
+            n = read_table_view(path, rows, values)
+            print(f"read {os.path.basename(path)}: {n} counties (table view)")
+            continue
         if not rows or "GEO_ID" not in rows[0] or "NAME" not in rows[0]:
             continue    # metadata/column-description files
         head = rows[0]
@@ -92,8 +116,16 @@ def summarize(v):
 
 
 def main():
-    folder = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "census")
-    values = read_values(folder)
+    if len(sys.argv) > 1:
+        folders = [sys.argv[1]]
+    else:   # census/ or data/Census (any capitalization)
+        folders = [os.path.join(ROOT, d) for d in os.listdir(ROOT) if d.lower() == "census"]
+        data = os.path.join(ROOT, "data")
+        folders += [os.path.join(data, d) for d in os.listdir(data) if d.lower() == "census"]
+    values = {}
+    for folder in folders:
+        for slug, v in read_values(folder).items():
+            values.setdefault(slug, {}).update(v)
     path = os.path.join(ROOT, "data", "index.json")
     index = json.load(open(path))
     missing = []
