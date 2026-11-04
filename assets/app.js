@@ -1,5 +1,5 @@
 // Building footprints by county: map view, sorted view, stats, poster export.
-// Data: data/index.json + data/counties/<slug>.json (see scripts/prep_buildings.py).
+// Data: data/index.json + data/counties/<slug>.json (see scripts/prep_buildings_arcpy.py).
 // Text, colors and defaults: assets/config.js.
 
 "use strict";
