@@ -63,6 +63,27 @@ function fillTokens(tpl, s) {
     top1: pct(s.top1),
     smallHalf: pct(s.smallHalf)
   };
+  // ACS census numbers (scripts/add_census.py); "–" when a table wasn't added
+  const c = s.census || {};
+  const num = (v, d = 0) => (v == null ? "–" : fmt(v, d));
+  const money = (v) => (v == null ? "–" : "$" + fmt(v));
+  const per = (v) => (v == null ? "–" : pct(v));
+  const resBuildings = s.tc ? s.tc[0] : null;
+  Object.assign(tokens, {
+    population: num(c.population),
+    housingUnits: num(c.housingUnits),
+    peoplePerBuilding: c.population && s.count ? fmt(c.population / s.count, 1) : "–",
+    unitsPerHome: c.housingUnits && resBuildings ? fmt(c.housingUnits / resBuildings, 2) : "–",
+    medianYearBuilt: c.medianYearBuilt == null ? "–" : String(c.medianYearBuilt),
+    medianHomeValue: money(c.medianHomeValue),
+    medianIncome: money(c.medianIncome),
+    pctVacant: per(c.pctVacant),
+    pctOwner: per(c.pctOwner),
+    pctRenter: per(c.pctRenter),
+    pctSingleFamily: per(c.pctSingleFamily),
+    pctMultiFamily: per(c.pctMultiFamily),
+    pctMobileHome: per(c.pctMobileHome)
+  });
   return tpl.replace(/\{(\w+)\}/g, (m, k) => (k in tokens ? tokens[k] : m));
 }
 

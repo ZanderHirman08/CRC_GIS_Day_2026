@@ -26,6 +26,11 @@ window.CONFIG = {
     //   {share} footprint as % of land   {median} median footprint (ft²)
     //   {top1} % of footprint in the largest 1%
     //   {smallHalf} % of footprint in the smallest half
+    // Census (ACS 2018 5-year, added by scripts/add_census.py):
+    //   {population}  {housingUnits}  {peoplePerBuilding} people per building
+    //   {unitsPerHome} housing units per Residential footprint  {medianYearBuilt}
+    //   {medianHomeValue}  {medianIncome}  {pctVacant}  {pctOwner}  {pctRenter}
+    //   {pctSingleFamily}  {pctMultiFamily}  {pctMobileHome}  (share of housing units)
     // e.g. "<b>{count}</b> buildings · {footprint} sq mi of footprint"
     facts: "",
 
