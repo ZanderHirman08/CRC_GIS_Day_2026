@@ -349,12 +349,13 @@ def main():
     for recs in per_county.values():
         for r in recs:
             ranks[r["cls"]].append(int(round(round(r["area"], 1) * 10)))
-    out = []
-    for areas in ranks:
+
+    def encode(areas):
         areas.sort(reverse=True)
-        out.append([a if i == 0 else areas[i - 1] - a for i, a in enumerate(areas)])
+        return [a if i == 0 else areas[i - 1] - a for i, a in enumerate(areas)]
+
     with open(os.path.join(OUT_FOLDER, "ranks.json"), "w") as f:
-        json.dump(dict(unit=0.1, classes=out), f, separators=(",", ":"))
+        json.dump(dict(unit=0.1, classes=[encode(a) for a in ranks]), f, separators=(",", ":"))
     log(f"Done: {OUT_FOLDER}")
 
 

@@ -448,7 +448,7 @@ function draw() {
   const out = renderScene(ctx, box, e, L, zoom.k, zoom.x, zoom.y, null, paths);
   if (still && !paths) pathCache = { key, k: zoom.k, paths: out.paths };
 
-  if (selected >= 0 && still && !(L && !cur.B[selected].vis)) {
+  if (selected >= 0 && still && view === "map") {
     outlineBuilding(cur.B[selected], out.f, e, L, (CFG.theme || {}).selected || "#ffffff", 2.5);
   }
   if (hover >= 0 && still) {
@@ -503,6 +503,7 @@ function animateTo(target) {
 function setView(v, instant) {
   const prev = view;
   view = v;
+  if (v !== "map" && selected >= 0) closeSelection();
   document.body.classList.toggle("v-sorted", v === "sorted");
   document.body.classList.toggle("v-stats", v === "stats");
   document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.v === v)));
@@ -568,6 +569,7 @@ cv.addEventListener("pointerup", (e) => {
   endDrag();
   if (!click) return;
   const r = cv.getBoundingClientRect();
+  if (view !== "map") return;   // selecting and ranks are a map-view tool
   const i = pickAt(e.clientX - r.left, e.clientY - r.top);
   if (i >= 0) selectBuilding(i); else closeSelection();
 });
@@ -638,12 +640,13 @@ async function loadRanks() {
   const r = await fetch("data/ranks.json");
   if (!r.ok) throw new Error(r.status);
   const d = await r.json();
-  RANKS = d.classes.map((deltas) => {
+  const decode = (deltas) => {
     const a = new Int32Array(deltas.length);
     let v = 0;
     for (let i = 0; i < deltas.length; i++) { v = i ? v - deltas[i] : deltas[i]; a[i] = v; }
     return a;
-  });
+  };
+  RANKS = d.classes.map(decode);
   return RANKS;
 }
 
@@ -671,8 +674,10 @@ async function selectBuilding(i) {
     if (bigger) cAll++;
     if (x.t === b.t) { nCls++; if (bigger) cCls++; }
   }
+  // Labels may name the building's class: {class}
+  const fill = (label) => label && label.replace("{class}", className(b.t));
   const row = (label, name, value) =>
-    `<div class="sel-row"><span class="${label ? "" : "ph"}">${esc(label || `[${name}]`)}</span><b>${value}</b></div>`;
+    `<div class="sel-row"><span class="${label ? "" : "ph"}">${esc(fill(label) || `[${name}]`)}</span><b>${value}</b></div>`;
   const head = `<div class="sel-head"><strong>${esc(IDX.prims[b.prim])}</strong>
       <button type="button" class="sel-close" aria-label="${esc(S.close || "Close")}">&times;</button></div>
     <div class="sel-class"><i style="background:${esc(classColor(b.t))}"></i>${esc(className(b.t))}</div>`;

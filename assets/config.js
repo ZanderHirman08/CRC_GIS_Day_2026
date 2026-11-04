@@ -54,13 +54,14 @@ window.CONFIG = {
       rowFootprint: "Footprint"
     },
 
-    // Panel shown when you click a building. {rank} and {total} are filled in.
+    // Panel shown when you click a building on the map.
+    // {class} = its OCC_CLS class; {rank} and {total} in rankFormat.
     selection: {
       size: "Size",
       countyRank: "Size rank in county",
+      classCountyRank: "{class} rank in county",
       crcRank: "Size rank in CRC",
-      classCountyRank: "Class rank in county",
-      classCrcRank: "Class rank in CRC",
+      classCrcRank: "{class} rank in CRC",
       rankFormat: "#{rank} of {total}",
       close: "Close"
     },
