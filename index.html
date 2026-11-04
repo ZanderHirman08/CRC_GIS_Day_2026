@@ -35,6 +35,14 @@
   <div class="opts" id="opts">
     <label class="sorted-only"><input type="checkbox" id="optGroup"> <span id="lblGroup"></span></label>
     <label class="sorted-only"><input type="checkbox" id="optAlign"> <span id="lblAlign"></span></label>
+    <label class="sorted-only"><span id="lblShow"></span>
+      <select id="optShow">
+        <option value="all" id="lblShowAll"></option>
+        <option value="largest" id="lblShowLargest"></option>
+        <option value="smallest" id="lblShowSmallest"></option>
+      </select>
+    </label>
+    <label class="sorted-only" id="nWrap"><span id="lblN"></span> <input type="number" id="optN" min="1" step="1"></label>
     <button type="button" id="resetView" class="canvas-only"></button>
     <button type="button" id="savePoster" class="canvas-only"></button>
   </div>

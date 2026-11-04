@@ -29,6 +29,14 @@ window.CONFIG = {
     controls: {
       group: "Group by class",
       align: "Long side horizontal",
+      show: "Show",
+      showAll: "All",
+      showLargest: "Largest N",
+      showSmallest: "Smallest N",
+      n: "N",
+      // Group label suffix when showing largest/smallest N; {n} and {total} are filled in
+      largestLabel: "largest {n} of {total}",
+      smallestLabel: "smallest {n} of {total}",
       reset: "Reset view",
       poster: "Save poster PNG"
     },
@@ -94,6 +102,8 @@ window.CONFIG = {
   defaultView: "map",           // "map" | "sorted" | "stats"
   defaultGroup: true,           // sorted view grouped by class
   defaultAlign: true,
+  defaultShow: "all",           // sorted view: "all" | "largest" | "smallest"
+  defaultN: 500,                // N buildings per class for largest/smallest
   animationMs: 1600,
   dimAlpha: 0.12,               // opacity of classes that are switched off in the legend
   minPixelSize: 1,              // smallest on-screen size of a building (px); 0 = true size

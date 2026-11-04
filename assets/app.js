@@ -25,7 +25,9 @@ let zoom = { k: 1, x: 0, y: 0 };
 let pathCache = null;
 const opts = {
   group: CFG.defaultGroup !== false,
-  align: CFG.defaultAlign !== false
+  align: CFG.defaultAlign !== false,
+  show: ["all", "largest", "smallest"].includes(CFG.defaultShow) ? CFG.defaultShow : "all",
+  n: Math.max(1, Math.round(CFG.defaultN || 500))
 };
 
 // ── helpers ─────────────────────────────────────────────────────
@@ -83,11 +85,19 @@ function applyConfig() {
   put($("tabStats"), tabs.stats, "tabs.stats");
   put($("lblGroup"), c.group, "controls.group");
   put($("lblAlign"), c.align, "controls.align");
+  put($("lblShow"), c.show, "controls.show");
+  put($("lblN"), c.n, "controls.n");
+  $("lblShowAll").textContent = c.showAll || "[showAll]";
+  $("lblShowLargest").textContent = c.showLargest || "[showLargest]";
+  $("lblShowSmallest").textContent = c.showSmallest || "[showSmallest]";
   put($("resetView"), c.reset, "controls.reset");
   put($("savePoster"), c.poster, "controls.poster");
 
   $("optGroup").checked = opts.group;
   $("optAlign").checked = opts.align;
+  $("optShow").value = opts.show;
+  $("optN").value = opts.n;
+  $("nWrap").hidden = opts.show === "all";
 }
 
 function message(text) {
@@ -246,12 +256,24 @@ function layoutPass(labH, aspect, widthFactor = 1) {
     if (opts.align && y1 - y0 > x1 - x0) { th2 = th + Math.PI / 2; [x0, x1, y0, y1] = [-y1, -y0, x0, x1]; }
     b.th = th2; b.bw = x1 - x0; b.bh = y1 - y0; b.bcx = (x0 + x1) / 2; b.bcy = (y0 + y1) / 2;
   }
-  const order = B.map((b, i) => i);
+  // Which buildings the sorted view shows: all, or the largest / smallest N of each class.
+  const byClass = new Map();
+  B.forEach((b, i) => { if (!byClass.has(b.t)) byClass.set(b.t, []); byClass.get(b.t).push(i); });
+  const totals = {};
+  for (const [t, idx] of byClass) {
+    totals[t] = idx.length;
+    idx.sort((i, j) => B[j].area - B[i].area);
+    const keep = opts.show === "largest" ? idx.slice(0, opts.n)
+      : opts.show === "smallest" ? idx.slice(Math.max(0, idx.length - opts.n)) : idx;
+    for (const i of idx) B[i].vis = false;
+    for (const i of keep) B[i].vis = true;
+  }
+  const order = B.map((b, i) => i).filter((i) => B[i].vis);
   order.sort((i, j) => (opts.group ? B[i].t - B[j].t : 0) || B[j].area - B[i].area);
 
   const gap = Math.max(0.5, Math.sqrt(cur.B.reduce((s, b) => s + b.area, 0) / cur.B.length) * 0.08);
   let tot = 0;
-  for (const b of B) tot += (b.bw + gap) * (b.bh + gap);
+  for (const i of order) tot += (B[i].bw + gap) * (B[i].bh + gap);
   const W = Math.sqrt(tot * 1.12 * aspect) * widthFactor;
   let x = 0, y = 0, rowH = 0, lastT = -1;
   const labels = [];
@@ -259,13 +281,13 @@ function layoutPass(labH, aspect, widthFactor = 1) {
     const b = B[i];
     if (opts.group && b.t !== lastT) {
       if (x > 0) { y += rowH + gap; x = 0; rowH = 0; }
-      y += labH + gap * 2; labels.push([b.t, y]); lastT = b.t;
+      y += labH + gap * 2; labels.push([b.t, y, Math.min(opts.n, totals[b.t]), totals[b.t]]); lastT = b.t;
     }
     if (x > 0 && x + b.bw > W) { x = 0; y += rowH + gap; rowH = 0; }
     b.sx = x + b.bw / 2; b.sy = y + b.bh / 2; x += b.bw + gap;
     if (b.bh > rowH) rowH = b.bh;
   }
-  return { W: Math.max(W, x), H: y + rowH, labels, grp: opts.group, aspect };
+  return { W: Math.max(W, x), H: y + rowH, labels, grp: opts.group, aspect, show: opts.show };
 }
 
 // Lay out for a drawing box; group labels need a second pass at the final scale.
@@ -309,13 +331,26 @@ function place(b, f, e, L) {
   return [ox, oy, th];
 }
 
+// Group label in the sorted view, e.g. "Residential · largest 500 of 91,648"
+function groupLabel(L, [t, , shown, total]) {
+  const c = T.controls || {};
+  if (L.show === "all") return className(t);
+  const tpl = (L.show === "largest" ? c.largestLabel : c.smallestLabel) || "";
+  const part = tpl ? tpl.replace("{n}", fmt(shown)).replace("{total}", fmt(total)) : `[${L.show}Label]`;
+  return `${className(t)} · ${part}`;
+}
+
 // One Path2D per class. Footprints under ~1 px are drawn as squares of equal area.
+// Buildings left out of the sorted view (largest/smallest N) go in `hidden` and fade out.
 function buildPaths(f, e, L, k) {
   const paths = IDX.classes.map(() => new Path2D());
+  const hidden = IDX.classes.map(() => new Path2D());
   const tiny = 0.9 / k;
   for (const b of cur.B) {
-    const [ox, oy, th] = place(b, f, e, L);
-    const p = paths[b.t];
+    const out = L && e > 0 && !b.vis;
+    if (out && e >= 1) continue;
+    const [ox, oy, th] = out ? place(b, f, 0, null) : place(b, f, e, L);
+    const p = out ? hidden[b.t] : paths[b.t];
     if (b.rad * f.s < tiny) {
       // keep every building at least minPixelSize on screen so dense areas stay visible
       const side = Math.max(Math.sqrt(b.area) * f.s, (CFG.minPixelSize ?? 1) / k);
@@ -332,6 +367,7 @@ function buildPaths(f, e, L, k) {
       // Chrome's path building quadratic with many subpaths.
     }
   }
+  paths.hidden = hidden;
   return paths;
 }
 
@@ -361,8 +397,10 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
   }
   paths = paths || buildPaths(f, e, L, k);
   for (let t = 0; t < paths.length; t++) {
-    g.globalAlpha = active && !active.has(t) ? (CFG.dimAlpha ?? 0.12) : 1;
+    const a = active && !active.has(t) ? (CFG.dimAlpha ?? 0.12) : 1;
     g.fillStyle = classColor(t);
+    if (e < 1 && paths.hidden) { g.globalAlpha = a * (1 - e); g.fill(paths.hidden[t], "evenodd"); }
+    g.globalAlpha = a;
     g.fill(paths[t], "evenodd");
   }
   g.globalAlpha = 1;
@@ -371,7 +409,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
     g.fillStyle = th.sub || "#c9ccd3";
     const fs = scaleOut && scaleOut.labelPx ? scaleOut.labelPx : 12;
     g.font = `500 ${fs / k}px ${th.font || "sans-serif"}`;
-    for (const [t, y] of L.labels) g.fillText(className(t), f.lx, f.ly + y * f.s - 4 / k);
+    for (const lab of L.labels) g.fillText(groupLabel(L, lab), f.lx, f.ly + lab[1] * f.s - 4 / k);
     g.globalAlpha = 1;
   }
   g.restore();
@@ -476,6 +514,17 @@ function setView(v, instant) {
 document.querySelectorAll(".tab").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
 $("optGroup").onchange = (e) => { opts.group = e.target.checked; relayout(); };
 $("optAlign").onchange = (e) => { opts.align = e.target.checked; relayout(); };
+$("optShow").onchange = (e) => { opts.show = e.target.value; $("nWrap").hidden = opts.show === "all"; relayout(); };
+let nTimer = 0;
+$("optN").oninput = (e) => {
+  clearTimeout(nTimer);
+  nTimer = setTimeout(() => {
+    const v = Math.round(Number(e.target.value));
+    if (!Number.isFinite(v) || v < 1) return;
+    opts.n = v;
+    if (opts.show !== "all") relayout();
+  }, 350);
+};
 $("resetView").onclick = () => { zoom = { k: 1, x: 0, y: 0 }; draw(); };
 function relayout() { layout = computeLayout(screenBox(), 12); pathCache = null; draw(); }
 
@@ -526,6 +575,7 @@ function hoverAt(ev) {
     for (let i = 0; i < cur.B.length; i++) {
       const b = cur.B[i];
       if (active && !active.has(b.t)) continue;
+      if (e && !b.vis) continue;
       let x0, y0, x1, y1;
       if (e) { x0 = f.lx + (b.sx - b.bw / 2) * s; y0 = f.ly + (b.sy - b.bh / 2) * s; x1 = x0 + b.bw * s; y1 = y0 + b.bh * s; }
       else { x0 = f.mx + (b.cx + b.x0) * s; y0 = f.my + (b.cy + b.y0) * s; x1 = f.mx + (b.cx + b.x1) * s; y1 = f.my + (b.cy + b.y1) * s; }

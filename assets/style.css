@@ -39,6 +39,7 @@ button:disabled { opacity: .4; cursor: default; }
 .opts { margin-left: auto; display: flex; gap: 12px; padding: 6px 0; color: var(--sub); font-size: 13px; align-items: center; flex-wrap: wrap; }
 .opts label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .opts select, .opts button { padding: 4px 8px; font-size: 13px; }
+.opts input[type=number] { width: 72px; font: inherit; font-size: 13px; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
 body:not(.v-sorted) .sorted-only { display: none; }
 body.v-stats .canvas-only { display: none; }
 
