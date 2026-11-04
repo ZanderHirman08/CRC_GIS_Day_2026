@@ -20,7 +20,14 @@ body { max-width: 1200px; margin: 0 auto; padding: 20px 16px 32px; }
 .intro a { color: var(--accent); text-underline-offset: 2px; }
 .intro a:hover { color: var(--text); }
 
-.top { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; margin: 18px 0 12px; }
+.top { display: grid; grid-template-columns: 220px 1fr auto; gap: 20px; align-items: start; margin: 18px 0 12px; }
+/* Mini-map: sorted view only, top right across from the county picker */
+.mini { width: 340px; }
+body:not(.v-sorted) .mini { display: none; }
+#miniCv { width: 340px; height: 220px; display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+.mini-cap { font-size: 13px; color: var(--sub); margin-top: 6px; line-height: 1.4; min-height: 1.4em; }
+.mini-cap strong { color: var(--text); }
+.mini-cap i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin: 0 4px 0 6px; }
 #picker { width: 100%; height: auto; max-height: 260px; display: block; }
 #picker path { fill: #1c2028; stroke: var(--bg); stroke-width: 2; cursor: pointer; vector-effect: non-scaling-stroke; }
 #picker path:hover { fill: #2c313c; }
@@ -95,6 +102,7 @@ table.toplist i { width: 10px; height: 10px; border-radius: 2px; display: inline
 
 @media (max-width: 720px) {
   .top { grid-template-columns: 1fr; }
+  .mini, #miniCv { width: 100%; }
   #picker { max-width: 280px; }
   .opts { margin-left: 0; width: 100%; }
   #stage { height: 64vh; }

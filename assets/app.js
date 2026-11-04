@@ -20,7 +20,9 @@ let view = CFG.defaultView || "map";
 let anim = 0;              // 0 = map, 1 = sorted
 let layout = null;
 let hover = -1;
-let selected = -1;         // index into cur.B of the clicked building
+let selected = -1;         // index into cur.B of the clicked building (map view)
+let miniSel = -1;          // building shown in the mini-map (sorted view)
+const water = {};          // slug -> { areas, rivers } from data/water/<slug>.json (optional)
 let RANKS = null;          // data/ranks.json, decoded: per class, every CRC building's area ×10, largest first
 let active = null;         // Set of class indices shown at full strength (null = all)
 let zoom = { k: 1, x: 0, y: 0 };
@@ -146,6 +148,7 @@ async function load(slug) {
       if (!r.ok) throw new Error(r.status);
       cache[slug] = prep(await r.json());
     }
+    if (!(slug in water)) water[slug] = await loadWater(slug, cache[slug].H);
   } catch (e) {
     message(`data/counties/${slug}.json could not be loaded.`);
     return;
@@ -154,6 +157,7 @@ async function load(slug) {
   cur = cache[slug];
   hover = -1;
   closeSelection();
+  setMini(-1);
   zoom = { k: 1, x: 0, y: 0 };
   layout = null;
   pathCache = null;
@@ -400,6 +404,7 @@ function renderScene(g, box, e, L, k, tx, ty, scaleOut, paths) {
     g.setLineDash([]);
     g.globalAlpha = 1;
   }
+  if (e < 1) drawWater(g, water[cur.slug], f.mx, f.my, f.s, k, 1 - e, null);
   paths = paths || buildPaths(f, e, L, k);
   for (let t = 0; t < paths.length; t++) {
     const a = active && !active.has(t) ? (CFG.dimAlpha ?? 0.12) : 1;
@@ -450,6 +455,9 @@ function draw() {
   const out = renderScene(ctx, box, e, L, zoom.k, zoom.x, zoom.y, null, paths);
   if (still && !paths) pathCache = { key, k: zoom.k, paths: out.paths };
 
+  if (miniSel >= 0 && still && view === "sorted" && L && cur.B[miniSel].vis) {
+    outlineBuilding(cur.B[miniSel], out.f, e, L, (CFG.theme || {}).selected || "#ffffff", 2.5);
+  }
   if (selected >= 0 && still && view === "map") {
     outlineBuilding(cur.B[selected], out.f, e, L, (CFG.theme || {}).selected || "#ffffff", 2.5);
   }
@@ -506,6 +514,7 @@ function setView(v, instant) {
   const prev = view;
   view = v;
   if (v !== "map" && selected >= 0) closeSelection();
+  if (v === "sorted") requestAnimationFrame(drawMini);
   document.body.classList.toggle("v-sorted", v === "sorted");
   document.body.classList.toggle("v-stats", v === "stats");
   document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.v === v)));
@@ -571,6 +580,7 @@ cv.addEventListener("pointerup", (e) => {
   endDrag();
   if (!click) return;
   const r = cv.getBoundingClientRect();
+  if (view === "sorted") { setMini(pickAt(e.clientX - r.left, e.clientY - r.top)); return; }
   if (view !== "map") return;   // selecting and ranks are a map-view tool
   const i = pickAt(e.clientX - r.left, e.clientY - r.top);
   if (i >= 0) selectBuilding(i); else closeSelection();
@@ -728,6 +738,133 @@ function closeSelection() {
   if (cur) draw();
 }
 addEventListener("keydown", (e) => { if (e.key === "Escape" && selected >= 0) closeSelection(); });
+
+// ── water + mini-map ───────────────────────────────────────────
+async function loadWater(slug, H) {
+  try {
+    const r = await fetch(`data/water/${slug}.json`, { cache: "no-cache" });
+    if (!r.ok) return null;
+    const d = await r.json();
+    // metres from the county corner, y up -> y down like the buildings; keep a bbox per shape
+    const conv = (flatList) => {
+      const a = new Float32Array(flatList.length);
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < flatList.length; i += 2) {
+        const x = flatList[i], y = H - flatList[i + 1];
+        a[i] = x; a[i + 1] = y;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+      return { a, x0, y0, x1, y1 };
+    };
+    return {
+      areas: (d.areas || []).map((poly) => poly.map(conv)),
+      rivers: (d.rivers || []).map(conv)
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Draw water in map coordinates: screen = origin + metres * s. `win` limits drawing to a box.
+function drawWater(g, w, ox, oy, s, k, alpha, win) {
+  if (!w || alpha <= 0) return;
+  const th = CFG.theme || {};
+  const inWin = (r) => !win || (r.x1 >= win[0] && r.x0 <= win[2] && r.y1 >= win[1] && r.y0 <= win[3]);
+  const p = new Path2D();
+  for (const poly of w.areas) {
+    if (!inWin(poly[0])) continue;
+    for (const ring of poly) {
+      const a = ring.a;
+      for (let i = 0; i < a.length; i += 2) {
+        const X = ox + a[i] * s, Y = oy + a[i + 1] * s;
+        i ? p.lineTo(X, Y) : p.moveTo(X, Y);
+      }
+    }
+  }
+  g.globalAlpha = alpha;
+  g.fillStyle = th.water || "#14273b";
+  g.fill(p, "evenodd");
+  const q = new Path2D();
+  for (const ln of w.rivers) {
+    if (!inWin(ln)) continue;
+    const a = ln.a;
+    for (let i = 0; i < a.length; i += 2) {
+      const X = ox + a[i] * s, Y = oy + a[i + 1] * s;
+      i ? q.lineTo(X, Y) : q.moveTo(X, Y);
+    }
+  }
+  g.strokeStyle = th.river || "#2b4f73";
+  g.lineWidth = 1.2 / k;
+  g.stroke(q);
+  g.globalAlpha = 1;
+}
+
+// Mini-map: a close-up of the clicked building's real location, with its neighbours
+function setMini(i) {
+  miniSel = i;
+  if (cur) draw();
+  drawMini();
+}
+
+function drawMini() {
+  const c = $("miniCv"), cap = $("miniCap");
+  if (!c || !cur) return;
+  const r = dpr(), w = c.clientWidth || 340, h = c.clientHeight || 220;
+  c.width = Math.round(w * r); c.height = Math.round(h * r);
+  const g = c.getContext("2d");
+  g.setTransform(r, 0, 0, r, 0, 0);
+  const th = CFG.theme || {};
+  g.fillStyle = th.bg || "#0f1115";
+  g.fillRect(0, 0, w, h);
+  const M = T.minimap || {};
+  if (miniSel < 0) {
+    put(cap, M.hint, "minimap.hint");
+    return;
+  }
+  const b = cur.B[miniSel];
+  // window: the building plus a few blocks around it
+  const half = Math.max(220, b.rad * 2.2);
+  const s = Math.min(w, h) / (2 * half);
+  const ox = w / 2 - b.cx * s, oy = h / 2 - b.cy * s;
+  const win = [b.cx - w / (2 * s), b.cy - h / (2 * s), b.cx + w / (2 * s), b.cy + h / (2 * s)];
+  drawWater(g, water[cur.slug], ox, oy, s, 1, 1, win);
+  const paths = IDX.classes.map(() => new Path2D());
+  for (const x of cur.B) {
+    if (x.cx + x.x1 < win[0] || x.cx + x.x0 > win[2] || x.cy + x.y1 < win[1] || x.cy + x.y0 > win[3]) continue;
+    const p = paths[x.t];
+    for (const a of x.rs) {
+      for (let j = 0; j < a.length; j += 2) {
+        const X = ox + (x.cx + a[j]) * s, Y = oy + (x.cy + a[j + 1]) * s;
+        j ? p.lineTo(X, Y) : p.moveTo(X, Y);
+      }
+    }
+  }
+  paths.forEach((p, t) => { g.globalAlpha = 0.85; g.fillStyle = classColor(t); g.fill(p, "evenodd"); });
+  g.globalAlpha = 1;
+  const sel = new Path2D();
+  for (const a of b.rs) {
+    for (let j = 0; j < a.length; j += 2) {
+      const X = ox + (b.cx + a[j]) * s, Y = oy + (b.cy + a[j + 1]) * s;
+      j ? sel.lineTo(X, Y) : sel.moveTo(X, Y);
+    }
+    sel.closePath();
+  }
+  g.fillStyle = classColor(b.t);
+  g.fill(sel, "evenodd");
+  g.strokeStyle = th.selected || "#00e5ff";
+  g.lineWidth = 2.5;
+  g.stroke(sel);
+  if (b.rad * s < 10) { g.beginPath(); g.arc(w / 2, h / 2, 12, 0, Math.PI * 2); g.stroke(); }
+  // scale bar
+  const sc = niceScale(s, 50);
+  g.strokeStyle = g.fillStyle = th.muted || "#8a8f99";
+  g.lineWidth = 2;
+  g.beginPath(); g.moveTo(10, h - 12); g.lineTo(10 + sc.px, h - 12); g.stroke();
+  g.font = `11px ${th.font || "sans-serif"}`;
+  g.fillText(sc.label, 10, h - 17);
+  cap.classList.remove("ph");
+  cap.innerHTML = `<strong>${esc(IDX.prims[b.prim])}</strong><i style="background:${esc(classColor(b.t))}"></i>${esc(className(b.t))} · ${fmt(b.area * SQFT)} ft²`;
+}
 
 // ── stats tab ───────────────────────────────────────────────────
 function bar(parts, total, colors) {

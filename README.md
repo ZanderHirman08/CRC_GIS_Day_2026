@@ -13,6 +13,7 @@ assets/style.css         layout
 scripts/prep_buildings_arcpy.py  builds data/ from the footprints (ArcGIS Pro)
 data/                    generated: index.json, ranks.json + counties/<slug>.json
 scripts/build_ranks.py   rebuilds data/ranks.json from the county files (plain Python)
+scripts/prep_water_arcpy.py  builds data/water/<county>.json from Census TIGER water (ArcGIS Pro)
 ```
 
 ## Build the data (ArcGIS Pro)
@@ -30,6 +31,14 @@ Each county layer is processed on its own and written to `data/counties/<county>
 the county comes from the layer name. `data/index.json` holds the per-county summaries.
 `data/ranks.json` (every building's size across all counties) powers the CRC-wide ranks shown when you click a building.
 The script prints any `OCC_CLS` values it couldn't match ("Unclassified").
+
+## Water layers (coastline and rivers)
+
+1. Download the Census TIGER/Line **Area Hydrography** (`areawater`) and **Linear Hydrography**
+   (`linearwater`) shapefiles for the 10 counties and unzip them into one folder.
+2. Fill in the SETTINGS block of `scripts/prep_water_arcpy.py` (`WATER_FOLDER`, `GDB`, `OUT_FOLDER`) and
+   run it in ArcGIS Pro's Python window the same way as the buildings script.
+3. Commit and push the new `data/water` folder. Counties without a water file simply show no water.
 
 ## After editing assets/config.js, app.js or style.css
 

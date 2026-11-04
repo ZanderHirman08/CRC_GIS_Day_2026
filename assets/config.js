@@ -69,6 +69,11 @@ window.CONFIG = {
       close: "Close"
     },
 
+    // Mini-map (sorted view): shown until a building is clicked
+    minimap: {
+      hint: "Click a building to see where it is."
+    },
+
     // Poster PNG
     poster: {
       title: "",            // defaults to text.title if empty
@@ -113,6 +118,8 @@ window.CONFIG = {
     accent: "#e0573e",      // selected tab, picker highlight, facts numbers
     countyOutline: "#4a5060",
     hover: "#00e5ff",
+    water: "#14273b",       // ocean, sounds, rivers (fill)
+    river: "#2b4f73",       // river lines
     selected: "#00e5ff",    // outline of the clicked building
     font: "system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
